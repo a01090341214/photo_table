@@ -63,7 +63,7 @@
         
         <!-- Header -->
         <header class="pt-12 pb-4 px-6 bg-white z-10 shadow-sm flex justify-between items-center">
-            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <h1 onclick="handleAdminClick()" class="text-xl font-bold text-gray-800 flex items-center gap-2 cursor-pointer select-none" style="-webkit-tap-highlight-color: transparent;">
                 <i class="fa-solid fa-leaf text-primary"></i> 찰칵 식단
             </h1>
             <button onclick="resetApp()" class="text-gray-400 hover:text-gray-600 text-sm">
@@ -263,7 +263,9 @@
                 
                 <div class="flex items-center gap-2 mb-1">
                     <h2 class="text-2xl font-black" id="result-name">제육덮밥</h2>
-                    <button onclick="editFoodInfo()" class="text-gray-400 hover:text-primary text-sm bg-gray-100 p-2 w-8 h-8 flex justify-center items-center rounded-full transition-colors" title="직접 수정하기"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="editFoodInfo()" class="text-gray-500 hover:text-primary text-sm bg-gray-100 px-3 py-1.5 flex justify-center items-center rounded-full transition-colors gap-1" title="직접 수정하기">
+                        <i class="fa-solid fa-pen"></i> <span class="font-bold">직접입력</span>
+                    </button>
                 </div>
                 
                 <p class="text-gray-500 text-sm mb-6" id="result-desc">추정량: 약 1인분 (오차 주의)</p>
@@ -294,6 +296,47 @@
                 <div class="mt-auto pt-4 flex gap-3">
                     <button onclick="cancelAnalysis()" class="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors">다시 찍기</button>
                     <button onclick="confirmFood()" class="flex-[2] py-4 bg-primary hover:bg-primary_dark text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-95">기록하기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Modal (Hidden by default) -->
+        <div id="admin-modal" class="hidden absolute inset-0 z-[60] flex items-center justify-center p-6">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeAdminModal()"></div>
+            <div class="bg-white w-full max-w-sm rounded-3xl p-6 relative z-10 shadow-2xl scale-95 opacity-0 transition-all duration-300" id="admin-modal-content">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-black text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-lock text-primary"></i> 관리자 대시보드
+                    </h3>
+                    <button onclick="closeAdminModal()" class="text-gray-400 hover:text-gray-700 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100 flex justify-between items-center">
+                        <span class="text-sm font-bold text-gray-600">오늘 업로드 횟수</span>
+                        <span class="text-2xl font-black text-primary" id="admin-today-count">0</span>
+                    </div>
+                    <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100 flex justify-between items-center">
+                        <span class="text-sm font-bold text-gray-600">전체 누적 업로드</span>
+                        <span class="text-2xl font-black text-blue-500" id="admin-total-count">0</span>
+                    </div>
+                </div>
+                
+                <button onclick="closeAdminModal()" class="w-full mt-6 py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition-colors active:scale-95">닫기</button>
+            </div>
+        </div>
+
+        <!-- Custom Password Prompt Modal -->
+        <div id="password-modal" class="hidden absolute inset-0 z-[70] flex items-center justify-center p-6">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closePasswordModal()"></div>
+            <div class="bg-white w-full max-w-xs rounded-3xl p-6 relative z-10 shadow-2xl scale-95 opacity-0 transition-all duration-300" id="password-modal-content">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 text-center">관리자 인증</h3>
+                <input type="password" id="admin-password-input" placeholder="비밀번호 4자리" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none text-center mb-6 tracking-widest text-lg font-bold" onkeypress="if(event.key === 'Enter') checkAdminPassword()">
+                <div class="flex gap-2">
+                    <button onclick="closePasswordModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl transition-colors">취소</button>
+                    <button onclick="checkAdminPassword()" class="flex-1 py-3 bg-primary hover:bg-primary_dark text-white font-bold rounded-xl transition-colors">확인</button>
                 </div>
             </div>
         </div>
@@ -625,16 +668,31 @@
             
             const newName = prompt("정확한 음식 이름을 입력해주세요.", appState.tempAnalysis.name);
             if(newName && newName.trim() !== "") {
-                const newKcal = prompt("예상 칼로리를 입력해주세요. (숫자만 입력)", appState.tempAnalysis.baseKcal);
+                // 사용자가 칼로리를 모를 수 있으므로, 음식 이름 키워드 기반으로 시스템이 임의로 칼로리를 자동 재설정 (Mock 데이터)
+                let estimatedKcal = 500; // 기본값
+                const nameToMatch = newName.replace(/\s+/g, ''); // 띄어쓰기 제거 후 검색
                 
-                if(newKcal && !isNaN(newKcal)) {
-                    appState.tempAnalysis.name = newName;
-                    appState.tempAnalysis.baseKcal = parseInt(newKcal);
-                    document.getElementById('result-name').innerText = newName;
-                    document.getElementById('result-desc').innerText = "사용자 직접 수정";
-                    updatePortion(); // 변경된 칼로리에 슬라이더 비율 다시 적용
-                    showToast("음식 정보가 수정되었습니다.");
+                if (nameToMatch.includes("샐러드") || nameToMatch.includes("야채") || nameToMatch.includes("채소")) {
+                    estimatedKcal = 250;
+                } else if (nameToMatch.includes("닭가슴살") || nameToMatch.includes("두부") || nameToMatch.includes("단백질")) {
+                    estimatedKcal = 300;
+                } else if (nameToMatch.includes("밥") || nameToMatch.includes("찌개") || nameToMatch.includes("국수") || nameToMatch.includes("면")) {
+                    estimatedKcal = 600;
+                } else if (nameToMatch.includes("고기") || nameToMatch.includes("치킨") || nameToMatch.includes("삼겹살") || nameToMatch.includes("피자") || nameToMatch.includes("버거")) {
+                    estimatedKcal = 850;
+                } else if (nameToMatch.includes("케이크") || nameToMatch.includes("빵") || nameToMatch.includes("과자") || nameToMatch.includes("디저트") || nameToMatch.includes("커피")) {
+                    estimatedKcal = 450;
+                } else {
+                    // 키워드가 없는 기타 음식은 글자 수 등을 이용해 고정된 난수형태로 자동 계산
+                    estimatedKcal = 400 + (newName.length * 40) % 300;
                 }
+
+                appState.tempAnalysis.name = newName;
+                appState.tempAnalysis.baseKcal = estimatedKcal;
+                document.getElementById('result-name').innerText = newName;
+                document.getElementById('result-desc').innerText = "사용자 직접 입력 (칼로리 자동 재설정)";
+                updatePortion(); // 변경된 칼로리에 슬라이더 비율 다시 적용
+                showToast("음식 정보에 맞게 칼로리가 자동 업데이트되었습니다.");
             }
         }
 
@@ -699,32 +757,39 @@
             const latestFood = foodLog[0];
             const timeParts = latestFood.time.split(':');
             const hour = parseInt(timeParts[0]);
+            const foodName = latestFood.name;
             
             let timeGreeting = "";
             let timeAdvice = "";
+            let foodPraise = "";
 
-            if (hour >= 5 && hour < 11) {
-                timeGreeting = "활기찬 아침이네요!";
-                timeAdvice = "점심에는 단백질을 조금 더 챙겨보는 건 어떨까요?";
-            } else if (hour >= 11 && hour < 17) {
-                timeGreeting = "나른한 오후, 에너지 충전 완료!";
-                timeAdvice = "저녁 식사 전까지 물을 충분히 마셔주세요.";
-            } else if (hour >= 17 && hour < 22) {
-                timeGreeting = "오늘 하루도 고생 많으셨어요!";
-                timeAdvice = "늦은 시간이니 남은 하루는 소화가 잘 되게 가벼운 휴식을 추천해요.";
+            // 1. 음식 키워드에 따른 맞춤형 긍정 멘트 작성
+            if (foodName.includes("샐러드") || foodName.includes("야채") || foodName.includes("채소") || foodName.includes("과일")) {
+                foodPraise = `건강을 생각한 가벼운 식단 관리가 정말 훌륭해요! 🥗`;
+            } else if (foodName.includes("고기") || foodName.includes("치킨") || foodName.includes("닭가슴살") || foodName.includes("두부")) {
+                foodPraise = `맛있고 든든한 단백질 섭취! 에너지 충전 완료입니다. 💪`;
+            } else if (foodName.includes("디저트") || foodName.includes("커피") || foodName.includes("빵") || foodName.includes("케이크")) {
+                foodPraise = `기분 전환에 최고죠! 달콤한 휴식으로 스트레스 싹 날려버리세요. 🍰`;
             } else {
-                timeGreeting = "야식을 드셨군요!";
-                timeAdvice = "취침 전까지 최소 2시간은 소화할 시간을 가지는 것이 좋습니다.";
+                foodPraise = `정말 탁월하고 맛있는 메뉴 선택이에요! 보기만 해도 군침이 도네요. 😋`;
             }
 
-            const compliments = [
-                "사진이 너무 먹음직스럽게 잘 찍혔어요! 📸",
-                "식단 기록하는 습관, 아주 훌륭합니다! 👍",
-                "건강을 향한 멋진 한 걸음이에요! 🔥"
-            ];
-            const randomCompliment = compliments[Math.floor(Math.random() * compliments.length)];
+            // 2. 시간대에 따른 인사와 조언
+            if (hour >= 5 && hour < 11) {
+                timeGreeting = "하루를 여는 아침 식사네요!";
+                timeAdvice = "오전 중에는 물을 자주 마셔주면 신진대사와 혈액순환에 아주 좋습니다.";
+            } else if (hour >= 11 && hour < 17) {
+                timeGreeting = "오후의 원동력이 될 맛있는 식사입니다!";
+                timeAdvice = "식사 후 10분 정도 가볍게 산책하거나 스트레칭을 하면 식곤증을 예방할 수 있어요.";
+            } else if (hour >= 17 && hour < 22) {
+                timeGreeting = "오늘 하루도 수고 많으셨어요. 보상 같은 식사네요!";
+                timeAdvice = "수면의 질을 높이기 위해 식사 후 최소 3시간 뒤에 잠자리에 드는 것을 권장해요.";
+            } else {
+                timeGreeting = "맛있게 먹으면 0칼로리! 즐거운 야식 타임입니다.";
+                timeAdvice = "내일 아침 몸이 붓지 않도록 식사 후 충분히 소화를 시키고 주무시는 것이 좋아요.";
+            }
 
-            feedbackEl.innerHTML = `<strong>${latestFood.time}</strong>에 <strong>${latestFood.name}</strong>을(를) 드셨군요. ${timeGreeting}<br>${randomCompliment}<br><br><span class="inline-block mt-1 text-xs font-bold bg-blue-200 px-2 py-1 rounded text-blue-800">💡 꿀팁: ${timeAdvice}</span>`;
+            feedbackEl.innerHTML = `<strong>${latestFood.time}</strong>에 <strong>${latestFood.name}</strong>을(를) 드셨군요.<br>${timeGreeting} ${foodPraise}<br><br><span class="inline-block mt-1 text-xs font-bold bg-blue-200 px-2 py-1 rounded text-blue-800">💡 찰칵 꿀팁: ${timeAdvice}</span>`;
         }
 
         function animateValue(id, start, end, duration) {
@@ -756,7 +821,105 @@
             }, 2500);
         }
 
+        // --- Admin Mode Logic ---
+        let adminClickCount = 0;
+        let adminClickTimer = null;
+
+        function handleAdminClick() {
+            adminClickCount++;
+            
+            // 1초 이내에 연속 클릭하지 않으면 카운트 초기화
+            clearTimeout(adminClickTimer);
+            adminClickTimer = setTimeout(() => {
+                adminClickCount = 0;
+            }, 1000);
+
+            // 10번 연속 클릭 시 트리거
+            if (adminClickCount >= 10) {
+                adminClickCount = 0; // 카운트 리셋
+                openPasswordModal(); // prompt() 대신 커스텀 모달 호출
+            }
+        }
+
+        function openPasswordModal() {
+            document.getElementById('admin-password-input').value = '';
+            const modal = document.getElementById('password-modal');
+            const content = document.getElementById('password-modal-content');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+                document.getElementById('admin-password-input').focus();
+            }, 10);
+        }
+
+        function closePasswordModal() {
+            const modal = document.getElementById('password-modal');
+            const content = document.getElementById('password-modal-content');
+            
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function checkAdminPassword() {
+            const password = document.getElementById('admin-password-input').value;
+            
+            if (password === "0319") {
+                closePasswordModal();
+                setTimeout(() => {
+                    openAdminModal();
+                }, 300); // 닫히는 애니메이션 후 열기
+            } else {
+                showToast("비밀번호가 일치하지 않습니다.");
+                document.getElementById('admin-password-input').value = '';
+                document.getElementById('admin-password-input').focus();
+            }
+        }
+
+        function openAdminModal() {
+            // 오늘 업로드 횟수 계산
+            const todayStr = getTodayString();
+            const todayData = appState.history[todayStr];
+            const todayCount = todayData ? todayData.foodLog.length : 0;
+            
+            // 전체 업로드 횟수 계산
+            let totalCount = 0;
+            for (const dateKey in appState.history) {
+                totalCount += appState.history[dateKey].foodLog.length;
+            }
+
+            // DOM 업데이트
+            document.getElementById('admin-today-count').innerText = todayCount + "건";
+            document.getElementById('admin-total-count').innerText = totalCount + "건";
+
+            // 모달 표시
+            const modal = document.getElementById('admin-modal');
+            const content = document.getElementById('admin-modal-content');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeAdminModal() {
+            const modal = document.getElementById('admin-modal');
+            const content = document.getElementById('admin-modal-content');
+            
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
     </script>
 </body>
 </html>
-```
