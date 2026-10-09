@@ -122,7 +122,7 @@
         </div>
 
         <!-- View 2: Main Dashboard -->
-        <div id="view-dashboard" class="hidden flex-1 overflow-y-auto bg-gray-50 flex flex-col relative pb-24">
+        <div id="view-dashboard" class="hidden flex-1 overflow-y-auto bg-gray-50 flex flex-col relative pb-6">
             
             <!-- Summary Card -->
             <div class="bg-white p-6 rounded-b-3xl shadow-sm mb-4">
@@ -172,12 +172,11 @@
                 </div>
             </div>
 
-            <!-- Ad Space -->
+            <!-- Upload Action Button (Replaced Ad Space) -->
             <div class="px-4 mb-4">
-                <div class="w-full bg-gray-200 rounded-xl h-20 flex items-center justify-center border border-dashed border-gray-300 relative overflow-hidden group cursor-pointer">
-                    <span class="text-xs text-gray-400 font-medium absolute top-2 left-2">AD</span>
-                    <span class="text-sm font-bold text-gray-500">구글 애드센스 배너 영역</span>
-                </div>
+                <button onclick="openUploadModal()" class="w-full bg-primary hover:bg-primary_dark text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/30 transition-all flex justify-center items-center gap-2 active:scale-95 text-lg">
+                    <i class="fa-solid fa-camera"></i> 사진으로 식단 추가하기
+                </button>
             </div>
 
             <!-- Food Log -->
@@ -195,13 +194,6 @@
                     </div>
                     <!-- Items will be injected here -->
                 </div>
-            </div>
-
-            <!-- FAB (Floating Action Button) for Upload -->
-            <div class="absolute bottom-6 left-0 right-0 flex justify-center px-6">
-                <button onclick="openUploadModal()" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-full shadow-xl transition-all flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-camera"></i> 사진으로 식단 추가하기
-                </button>
             </div>
         </div>
 
@@ -418,10 +410,15 @@
         }
 
         function saveData() {
-            localStorage.setItem('aiDietData', JSON.stringify({
-                profile: appState.profile,
-                history: appState.history
-            }));
+            try {
+                localStorage.setItem('aiDietData', JSON.stringify({
+                    profile: appState.profile,
+                    history: appState.history
+                }));
+            } catch (error) {
+                console.warn("저장 공간 초과 에러 발생 - 이미지 압축이 필요합니다.", error);
+                // 브라우저 캐시 용량이 부족할 경우 에러를 캐치해 뻗는 것을 방지
+            }
         }
 
         window.onload = initApp;
@@ -612,23 +609,45 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // Show preview
+            // 용량 초과로 멈추는(프리징) 현상을 막기 위해 이미지 리사이징(압축) 처리 추가
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('preview-image').src = e.target.result;
-                
-                // Reset UI state for analysis
-                document.getElementById('scanning-overlay').classList.remove('hidden');
-                document.getElementById('result-container').classList.add('hidden');
-                document.getElementById('portion-slider').value = 100;
-                updatePortion();
-                
-                showView('view-analysis');
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 400; // LocalStorage 용량 방어를 위해 가로 사이즈 400px로 축소
+                    let width = img.width;
+                    let height = img.height;
 
-                // Simulate AI Network Delay (2 seconds)
-                setTimeout(() => {
-                    processMockAIResponse(e.target.result);
-                }, 2000);
+                    if (width > MAX_WIDTH) {
+                        height = Math.round((height *= MAX_WIDTH / width));
+                        width = MAX_WIDTH;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // JPEG 60% 화질로 압축 (Base64 변환 시 용량을 획기적으로 감소시킴)
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+
+                    document.getElementById('preview-image').src = compressedDataUrl;
+                    
+                    // Reset UI state for analysis
+                    document.getElementById('scanning-overlay').classList.remove('hidden');
+                    document.getElementById('result-container').classList.add('hidden');
+                    document.getElementById('portion-slider').value = 100;
+                    updatePortion();
+                    
+                    showView('view-analysis');
+
+                    // Simulate AI Network Delay (2 seconds)
+                    setTimeout(() => {
+                        processMockAIResponse(compressedDataUrl);
+                    }, 2000);
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
