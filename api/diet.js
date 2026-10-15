@@ -1,9 +1,10 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS 헤더 설정
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+  // 사전 요청 처리
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
       cleanBase64 = parts[1];
     }
 
-    // ⭐ 모델명 1.5 확인 완료 ⭐
+    // Gemini 1.5 모델 주소
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const systemInstruction =
@@ -69,7 +70,7 @@ export default async function handler(req, res) {
         responseSchema: {
           type: "OBJECT",
           properties: {
-            name: { type: "STRING", description: "식별된 한국어 대표 요리명 (예: 김치찌개, 고구마)" },
+            name: { type: "STRING", description: "식별된 한국어 대표 요리명 (예: 함박스테이크, 고구마)" },
             desc: { type: "STRING", description: "추정 분량 및 설명" },
             baseKcal: { type: "INTEGER", description: "1인분 기준 추정 총 칼로리(kcal, 정수)" },
             carbs: { type: "INTEGER", description: "탄수화물 g (정수)" },
@@ -104,4 +105,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ error: "서버 내부 오류", message: err.message });
   }
-}
+};
