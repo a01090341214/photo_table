@@ -35,8 +35,8 @@ export default async function handler(req, res) {
       cleanBase64 = parts[1];
     }
 
-    // Google Gemini API 엔드포인트 호출
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // ⭐ 수정된 부분: 모델 이름을 실제 존재하는 gemini-1.5-flash 로 변경했습니다.
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const systemInstruction =
       "당신은 대한민국 최고의 임상영양사입니다. 제공된 사진 속 요리나 음식을 감별하고 현실적인 영양 정보를 분석하세요. " +
