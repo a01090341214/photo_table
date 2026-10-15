@@ -1,0 +1,9 @@
+{
+"name": "diet-ai-app",
+"version": "1.0.0",
+"description": "AI 식단 분석기",
+"scripts": {
+"start": "node"
+},
+"dependencies": {}
+}
