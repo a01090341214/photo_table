@@ -59,14 +59,14 @@
                 <i class="fa-solid fa-leaf text-primary"></i> 찰칵 식단
             </h1>
             <button onclick="resetApp()" class="text-gray-400 hover:text-gray-600 text-sm">
-                <i class="fa-solid fa-gear"></i> 설정
+                <i class="fa-solid fa-gear"></i> 설정 초기화
             </button>
         </header>
 
         <!-- View 1: Onboarding (Profile Setup) -->
         <div id="view-onboarding" class="flex-1 overflow-y-auto p-6 bg-white flex flex-col transition-all duration-300">
             <h2 class="text-2xl font-bold mb-2">당신을 알려주세요 👋</h2>
-            <p class="text-gray-500 mb-6 text-sm">정확한 하루 권장 칼로리 계산을 위해 필요해요.</p>
+            <p class="text-gray-500 mb-6 text-sm">정확한 하루 권장 칼로리 계산을 위해 한 번만 입력하시면 됩니다.</p>
             
             <div class="space-y-4">
                 <div>
@@ -283,7 +283,7 @@
             </div>
         </div>
 
-        <!-- Admin Modal -->
+        <!-- Admin Modal (비밀번호: 0319) -->
         <div id="admin-modal" class="hidden absolute inset-0 z-[60] flex items-center justify-center p-6">
             <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeAdminModal()"></div>
             <div class="bg-white w-full max-w-sm rounded-3xl p-6 relative z-10 shadow-2xl scale-95 opacity-0 transition-all duration-300" id="admin-modal-content">
@@ -375,6 +375,7 @@
             updateDashboardUI();
         }
 
+        // ⭐ 앱 시작 시 로컬 저장소(localStorage)에서 데이터 불러오기
         function initApp() {
             const saved = localStorage.getItem('aiDietData');
             if (saved) {
@@ -387,6 +388,7 @@
                     appState.history[appState.currentDate] = { consumed: 0, foodLog: [] };
                 }
 
+                // 나이와 성별 정보가 이미 브라우저에 저장되어 있다면 온보딩 패스!
                 if (appState.profile.gender && appState.profile.age) {
                     showView('view-dashboard');
                     updateDashboardUI();
@@ -448,6 +450,7 @@
             if(gender === 'F') document.getElementById('btn-gender-f').classList.add('border-primary', 'bg-primary/10', 'text-primary');
         }
 
+        // ⭐ 입력한 정보를 상태(state)에 정확히 저장하도록 수정된 부분
         function calculateProfile() {
             const age = parseInt(document.getElementById('input-age').value);
             const height = parseInt(document.getElementById('input-height').value);
@@ -459,6 +462,12 @@
                 return;
             }
 
+            // 입력값을 appState 프로필에 확실하게 저장 (이 부분이 보완되었습니다)
+            appState.profile.age = age;
+            appState.profile.height = height;
+            appState.profile.weight = weight;
+            appState.profile.activity = activity;
+
             let bmr;
             if (appState.profile.gender === 'M') {
                 bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
@@ -469,7 +478,7 @@
             const tdee = Math.round(bmr * activity);
             appState.profile.goalKcal = tdee;
 
-            saveData();
+            saveData(); // 이제 키, 몸무게 정보가 정상적으로 브라우저에 기록됩니다.
             updateDashboardUI();
             showView('view-dashboard');
         }
@@ -609,7 +618,7 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 600; // AI 분석을 위해 선명도와 용량 균형 유지
+                    const MAX_WIDTH = 600; 
                     let width = img.width;
                     let height = img.height;
 
@@ -642,10 +651,8 @@
             reader.readAsDataURL(file);
         }
 
-        // --- 진짜 AI 분석 연동 함수 ---
         async function analyzeImageWithAI(imageDataUrl) {
             try {
-                // Vercel /api/analyze 엔드포인트 호출
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -668,7 +675,6 @@
                 console.error("AI 분석 에러:", err);
                 showToast("AI 분석 중 문제가 발생했습니다: " + err.message);
                 
-                // 에러 발생 시 수동 입력할 수 있는 기본 데이터로 안내
                 displayAnalysisResult({
                     name: "음식 직접 입력",
                     desc: "AI 분석에 실패하여 직접 작성이 필요합니다.",
