@@ -30,7 +30,6 @@
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f3f4f6; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* Smooth transitions */
         .fade-enter { opacity: 0; transform: translateY(10px); }
         .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
         .progress-ring__circle {
@@ -39,7 +38,6 @@
             transform-origin: 50% 50%;
         }
         
-        /* Calorie warning pulse animation */
         @keyframes pulse-danger {
             0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
             50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
@@ -47,22 +45,6 @@
         .overflow-alert-card {
             animation: pulse-danger 2s infinite ease-in-out;
             border-color: #f87171 !important;
-        }
-
-        /* Custom file input wrapper */
-        .file-upload-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-        .file-upload-wrapper input[type=file] {
-            font-size: 100px;
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            cursor: pointer;
-            height: 100%;
         }
     </style>
 </head>
@@ -187,7 +169,7 @@
                 </div>
             </div>
 
-            <!-- Upload Action Button (Replaced Ad Space) -->
+            <!-- Upload Action Button -->
             <div class="px-4 mb-4">
                 <button onclick="openUploadModal()" class="w-full bg-primary hover:bg-primary_dark text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/30 transition-all flex justify-center items-center gap-2 active:scale-95 text-lg">
                     <i class="fa-solid fa-camera"></i> 사진으로 식단 추가하기
@@ -200,23 +182,19 @@
                     <h3 class="font-bold text-gray-700" id="food-list-title">오늘 먹은 음식</h3>
                 </div>
                 <div id="food-list" class="space-y-3">
-                    <!-- Empty State -->
                     <div id="empty-state" class="text-center py-10 bg-white rounded-2xl border border-gray-100 shadow-sm">
                         <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300 text-2xl">
                             <i class="fa-solid fa-utensils"></i>
                         </div>
                         <p class="text-gray-400 text-sm">아직 기록된 식단이 없습니다.<br>사진을 찍어 기록해보세요!</p>
                     </div>
-                    <!-- Items will be injected here -->
                 </div>
             </div>
         </div>
 
         <!-- Upload Modal (Action Sheet) -->
         <div id="upload-modal" class="hidden absolute inset-0 z-50 flex items-end justify-center">
-            <!-- Backdrop -->
             <div class="absolute inset-0 bg-black/50 transition-opacity" onclick="closeUploadModal()"></div>
-            <!-- Sheet -->
             <div class="bg-white w-full h-auto rounded-t-3xl p-6 transform transition-transform translate-y-full z-10 duration-300" id="upload-sheet">
                 <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
                 <h3 class="text-lg font-bold text-gray-800 mb-4 text-center">식단 기록하기</h3>
@@ -242,7 +220,6 @@
 
         <!-- View 3: AI Analysis Loading & Result -->
         <div id="view-analysis" class="hidden flex-1 overflow-y-auto bg-gray-900 text-white flex flex-col relative">
-            
             <button onclick="cancelAnalysis()" class="absolute top-6 right-6 text-white/70 hover:text-white z-20 bg-black/30 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -251,12 +228,11 @@
             <div class="w-full h-[50%] relative bg-black">
                 <img id="preview-image" src="" alt="Food preview" class="w-full h-full object-cover opacity-60">
                 
-                <!-- Scanning Animation Overlay -->
                 <div id="scanning-overlay" class="absolute inset-0 flex flex-col items-center justify-center z-10">
                     <div class="w-full h-1 bg-primary absolute top-0 left-0 shadow-[0_0_15px_#10B981] animate-[scan_2s_ease-in-out_infinite]"></div>
                     <i class="fa-solid fa-magnifying-glass text-4xl text-primary mb-4 animate-bounce"></i>
-                    <p class="font-bold text-lg animate-pulse">요리를 분석 중입니다...</p>
-                    <p class="text-xs text-white/60 mt-2 text-center px-10">재료와 조리법을 파악하여<br>칼로리를 추정하고 있습니다.</p>
+                    <p class="font-bold text-lg animate-pulse">Gemini AI가 요리를 분석 중...</p>
+                    <p class="text-xs text-white/60 mt-2 text-center px-10">사진 속 재료와 조리법을 감별하여<br>칼로리와 탄단지를 계산하고 있습니다.</p>
                 </div>
             </div>
 
@@ -265,33 +241,33 @@
                 <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
                 
                 <div class="flex justify-between items-end mb-1">
-                    <p class="text-sm font-bold text-primary"><i class="fa-solid fa-check-circle"></i> 분석 완료</p>
+                    <p class="text-sm font-bold text-primary"><i class="fa-solid fa-check-circle"></i> AI 분석 완료</p>
                 </div>
                 
                 <div class="flex items-center gap-2 mb-1">
-                    <h2 class="text-2xl font-black" id="result-name">제육덮밥</h2>
+                    <h2 class="text-2xl font-black" id="result-name">요리명</h2>
                     <button onclick="editFoodInfo()" class="text-gray-500 hover:text-primary text-sm bg-gray-100 px-3 py-1.5 flex justify-center items-center rounded-full transition-colors gap-1" title="직접 수정하기">
                         <i class="fa-solid fa-pen"></i> <span class="font-bold">직접입력</span>
                     </button>
                 </div>
                 
-                <p class="text-gray-500 text-sm mb-6" id="result-desc">추정량: 약 1인분 (오차 주의)</p>
+                <p class="text-gray-500 text-sm mb-6" id="result-desc">추정량: 약 1인분</p>
 
                 <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100 mb-6 flex justify-between items-center">
                     <div>
                         <p class="text-sm font-medium text-gray-500 mb-1">추정 칼로리</p>
-                        <p class="text-3xl font-black text-gray-800"><span id="result-kcal" class="text-primary">750</span> <span class="text-lg">kcal</span></p>
+                        <p class="text-3xl font-black text-gray-800"><span id="result-kcal" class="text-primary">0</span> <span class="text-lg">kcal</span></p>
                     </div>
                     <div class="text-right flex flex-col gap-1">
-                        <span class="text-xs font-medium bg-orange-100 text-orange-600 px-2 py-1 rounded">탄 85g</span>
-                        <span class="text-xs font-medium bg-blue-100 text-blue-600 px-2 py-1 rounded">단 35g</span>
-                        <span class="text-xs font-medium bg-red-100 text-red-600 px-2 py-1 rounded">지 25g</span>
+                        <span id="result-carbs" class="text-xs font-medium bg-orange-100 text-orange-600 px-2 py-1 rounded">탄 0g</span>
+                        <span id="result-protein" class="text-xs font-medium bg-blue-100 text-blue-600 px-2 py-1 rounded">단 0g</span>
+                        <span id="result-fat" class="text-xs font-medium bg-red-100 text-red-600 px-2 py-1 rounded">지 0g</span>
                     </div>
                 </div>
 
                 <!-- Manual Adjustment UI -->
                 <div class="mb-6">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">실제 먹은 양 조절 (정확도 보완)</label>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">실제 먹은 양 조절</label>
                     <input type="range" id="portion-slider" min="10" max="200" value="100" class="w-full accent-primary h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updatePortion()">
                     <div class="flex justify-between text-xs text-gray-400 mt-2 font-medium">
                         <span>조금 먹음 (절반)</span>
@@ -307,7 +283,7 @@
             </div>
         </div>
 
-        <!-- Admin Modal (Hidden by default) -->
+        <!-- Admin Modal -->
         <div id="admin-modal" class="hidden absolute inset-0 z-[60] flex items-center justify-center p-6">
             <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeAdminModal()"></div>
             <div class="bg-white w-full max-w-sm rounded-3xl p-6 relative z-10 shadow-2xl scale-95 opacity-0 transition-all duration-300" id="admin-modal-content">
@@ -371,11 +347,10 @@
                 goalKcal: 2000
             },
             currentDate: getTodayString(),
-            history: {}, // Format: { "YYYY-MM-DD": { consumed: 0, foodLog: [] } }
+            history: {},
             tempAnalysis: null
         };
 
-        // Date Helpers
         function getTodayString() {
             const d = new Date();
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -400,7 +375,6 @@
             updateDashboardUI();
         }
 
-        // Storage Helpers
         function initApp() {
             const saved = localStorage.getItem('aiDietData');
             if (saved) {
@@ -413,7 +387,6 @@
                     appState.history[appState.currentDate] = { consumed: 0, foodLog: [] };
                 }
 
-                // 프로필 설정이 완료된 상태면 대시보드로 바로 이동
                 if (appState.profile.gender && appState.profile.age) {
                     showView('view-dashboard');
                     updateDashboardUI();
@@ -431,14 +404,12 @@
                     history: appState.history
                 }));
             } catch (error) {
-                console.warn("저장 공간 초과 에러 발생 - 이미지 압축이 필요합니다.", error);
-                // 브라우저 캐시 용량이 부족할 경우 에러를 캐치해 뻗는 것을 방지
+                console.warn("저장 용량 초과 경고", error);
             }
         }
 
         window.onload = initApp;
 
-        // --- View Navigation ---
         function showView(viewId) {
             document.getElementById('view-onboarding').classList.add('hidden');
             document.getElementById('view-dashboard').classList.add('hidden');
@@ -468,7 +439,6 @@
             }
         }
 
-        // --- Onboarding & Calculation ---
         function setGender(gender) {
             appState.profile.gender = gender;
             document.getElementById('btn-gender-m').classList.remove('border-primary', 'bg-primary/10', 'text-primary');
@@ -489,7 +459,6 @@
                 return;
             }
 
-            // Mifflin-St Jeor Equation for BMR
             let bmr;
             if (appState.profile.gender === 'M') {
                 bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
@@ -497,10 +466,7 @@
                 bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
             }
 
-            // Total Daily Energy Expenditure (TDEE)
             const tdee = Math.round(bmr * activity);
-            
-            // Set Goal (For weight loss, subtract 300~500. Here we just use maintenance/TDEE for simplicity)
             appState.profile.goalKcal = tdee;
 
             saveData();
@@ -508,7 +474,6 @@
             showView('view-dashboard');
         }
 
-        // --- Main Dashboard UI Update ---
         function updateDashboardUI() {
             const todayData = appState.history[appState.currentDate];
             const consumed = todayData ? todayData.consumed : 0;
@@ -520,7 +485,6 @@
             const isToday = appState.currentDate === getTodayString();
             document.getElementById('food-list-title').innerText = isToday ? "오늘 먹은 음식" : `${formatDateDisplay(appState.currentDate)} 식단`;
             
-            // Animate Numbers
             const currentDisplayVal = parseInt(document.getElementById('display-consumed').innerText.replace(/,/g, '')) || 0;
             animateValue("display-consumed", currentDisplayVal, consumed, 500);
             
@@ -537,7 +501,6 @@
             let percent = Math.round((consumed / goalKcal) * 100);
 
             if (isOverflown) {
-                // 초과 상태 처리 (강렬한 빨강 강조)
                 const excess = Math.abs(diff);
                 remainingLabelEl.innerText = "초과 칼로리";
                 remainingLabelEl.classList.add('text-red-500');
@@ -552,12 +515,10 @@
                 overflowBadgeEl.classList.remove('hidden');
                 summaryCardEl.classList.add('overflow-alert-card');
 
-                // 원형 게이지 빨간색 풀충전
                 circle.classList.remove('text-primary');
                 circle.classList.add('text-red-500');
                 circle.style.strokeDashoffset = 0;
             } else {
-                // 정상/여유 상태 복원
                 remainingLabelEl.innerText = "남은 칼로리";
                 remainingLabelEl.classList.remove('text-red-500');
 
@@ -574,7 +535,6 @@
                 circle.classList.remove('text-red-500');
                 circle.classList.add('text-primary');
 
-                // Circle Progress offset
                 const radius = circle.r.baseVal.value;
                 const circumference = radius * 2 * Math.PI;
                 const clampedPercent = Math.min(percent, 100);
@@ -591,7 +551,6 @@
             const list = document.getElementById('food-list');
             const emptyState = document.getElementById('empty-state');
             
-            // Clear existing items except empty state
             Array.from(list.children).forEach(child => {
                 if(child.id !== 'empty-state') child.remove();
             });
@@ -622,22 +581,6 @@
             }
         }
 
-        // --- Mock AI Implementation ---
-        /* 
-         * [개발자 노트]
-         * 실제 서비스에서는 이 부분에서 FormData 객체에 이미지를 담아 백엔드 서버로 POST 요청을 보냅니다.
-         * 백엔드 서버에서 OpenAI Vision API나 Google Cloud Vision API를 호출하여 결과를 받아 프론트로 넘겨줍니다.
-         * 보안상 HTML 클라이언트에 API Key를 노출하면 안 되기 때문에 여기서는 Mock(가짜) 데이터로 시뮬레이션합니다.
-         */
-        const mockFoodDatabase = [
-            { name: "제육덮밥", baseKcal: 780, desc: "매콤한 돼지고기와 밥 (기본 1인분 기준)" },
-            { name: "연어 샐러드", baseKcal: 320, desc: "드레싱 포함 추정치 (다이어트 추천)" },
-            { name: "치즈버거 세트", baseKcal: 950, desc: "버거, 감자튀김, 콜라 포함" },
-            { name: "아메리카노 & 조각케이크", baseKcal: 450, desc: "당류 섭취에 주의하세요." },
-            { name: "마라탕", baseKcal: 850, desc: "국물 섭취 시 나트륨 및 칼로리 급증" }
-        ];
-
-        // --- Upload Modal Logic ---
         function openUploadModal() {
             const modal = document.getElementById('upload-modal');
             const sheet = document.getElementById('upload-sheet');
@@ -661,13 +604,12 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // 용량 초과로 멈추는(프리징) 현상을 막기 위해 이미지 리사이징(압축) 처리 추가
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 400; // LocalStorage 용량 방어를 위해 가로 사이즈 400px로 축소
+                    const MAX_WIDTH = 600; // AI 분석을 위해 선명도와 용량 균형 유지
                     let width = img.width;
                     let height = img.height;
 
@@ -681,12 +623,10 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // JPEG 60% 화질로 압축 (Base64 변환 시 용량을 획기적으로 감소시킴)
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
 
                     document.getElementById('preview-image').src = compressedDataUrl;
                     
-                    // Reset UI state for analysis
                     document.getElementById('scanning-overlay').classList.remove('hidden');
                     document.getElementById('result-container').classList.add('hidden');
                     document.getElementById('portion-slider').value = 100;
@@ -694,43 +634,81 @@
                     
                     showView('view-analysis');
 
-                    // Simulate AI Network Delay (2 seconds)
-                    setTimeout(() => {
-                        processMockAIResponse(compressedDataUrl);
-                    }, 2000);
+                    // Vercel Serverless API 호출
+                    analyzeImageWithAI(compressedDataUrl);
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        function processMockAIResponse(imageSrc) {
-            // Hide scanning, show result
+        // --- 진짜 AI 분석 연동 함수 ---
+        async function analyzeImageWithAI(imageDataUrl) {
+            try {
+                // Vercel /api/analyze 엔드포인트 호출
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageDataUrl })
+                });
+
+                if (!response.ok) {
+                    const errorJson = await response.json().catch(() => ({}));
+                    throw new Error(errorJson.error || "분석 서버 응답 실패");
+                }
+
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    displayAnalysisResult(result.data, imageDataUrl);
+                } else {
+                    throw new Error("분석 데이터를 읽지 못했습니다.");
+                }
+            } catch (err) {
+                console.error("AI 분석 에러:", err);
+                showToast("AI 분석 중 문제가 발생했습니다: " + err.message);
+                
+                // 에러 발생 시 수동 입력할 수 있는 기본 데이터로 안내
+                displayAnalysisResult({
+                    name: "음식 직접 입력",
+                    desc: "AI 분석에 실패하여 직접 작성이 필요합니다.",
+                    baseKcal: 500,
+                    carbs: 0,
+                    protein: 0,
+                    fat: 0
+                }, imageDataUrl);
+            }
+        }
+
+        function displayAnalysisResult(foodData, imageSrc) {
             document.getElementById('scanning-overlay').classList.add('hidden');
             
             const resultDiv = document.getElementById('result-container');
             resultDiv.classList.remove('hidden');
             resultDiv.classList.add('fade-enter', 'fade-enter-active');
 
-            // Pick random mock result
-            const randomFood = mockFoodDatabase[Math.floor(Math.random() * mockFoodDatabase.length)];
-            
             appState.tempAnalysis = {
-                name: randomFood.name,
-                baseKcal: randomFood.baseKcal,
-                currentKcal: randomFood.baseKcal,
+                name: foodData.name || "식별된 음식",
+                baseKcal: foodData.baseKcal || 500,
+                currentKcal: foodData.baseKcal || 500,
+                carbs: foodData.carbs || 0,
+                protein: foodData.protein || 0,
+                fat: foodData.fat || 0,
                 image: imageSrc,
                 portion: 100
             };
 
-            document.getElementById('result-name').innerText = randomFood.name;
-            document.getElementById('result-desc').innerText = randomFood.desc;
-            document.getElementById('result-kcal').innerText = randomFood.baseKcal;
+            document.getElementById('result-name').innerText = foodData.name;
+            document.getElementById('result-desc').innerText = foodData.desc || "1인분 기준 추정치";
+            document.getElementById('result-kcal').innerText = foodData.baseKcal;
+            document.getElementById('result-carbs').innerText = `탄 ${foodData.carbs || 0}g`;
+            document.getElementById('result-protein').innerText = `단 ${foodData.protein || 0}g`;
+            document.getElementById('result-fat').innerText = `지 ${foodData.fat || 0}g`;
         }
 
         function cancelAnalysis() {
             appState.tempAnalysis = null;
-            document.querySelectorAll('input[type="file"]').forEach(input => input.value = ''); // reset file inputs
+            document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
             showView('view-dashboard');
         }
 
@@ -739,9 +717,8 @@
             
             const newName = prompt("정확한 음식 이름을 입력해주세요.", appState.tempAnalysis.name);
             if(newName && newName.trim() !== "") {
-                // 사용자가 칼로리를 모를 수 있으므로, 음식 이름 키워드 기반으로 시스템이 임의로 칼로리를 자동 재설정 (Mock 데이터)
-                let estimatedKcal = 500; // 기본값
-                const nameToMatch = newName.replace(/\s+/g, ''); // 띄어쓰기 제거 후 검색
+                let estimatedKcal = 500;
+                const nameToMatch = newName.replace(/\s+/g, '');
                 
                 if (nameToMatch.includes("샐러드") || nameToMatch.includes("야채") || nameToMatch.includes("채소")) {
                     estimatedKcal = 250;
@@ -754,7 +731,6 @@
                 } else if (nameToMatch.includes("케이크") || nameToMatch.includes("빵") || nameToMatch.includes("과자") || nameToMatch.includes("디저트") || nameToMatch.includes("커피")) {
                     estimatedKcal = 450;
                 } else {
-                    // 키워드가 없는 기타 음식은 글자 수 등을 이용해 고정된 난수형태로 자동 계산
                     estimatedKcal = 400 + (newName.length * 40) % 300;
                 }
 
@@ -762,7 +738,7 @@
                 appState.tempAnalysis.baseKcal = estimatedKcal;
                 document.getElementById('result-name').innerText = newName;
                 document.getElementById('result-desc').innerText = "사용자 직접 입력 (칼로리 자동 재설정)";
-                updatePortion(); // 변경된 칼로리에 슬라이더 비율 다시 적용
+                updatePortion();
                 showToast("음식 정보에 맞게 칼로리가 자동 업데이트되었습니다.");
             }
         }
@@ -789,7 +765,6 @@
             const now = new Date();
             const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-            // Ensure current date history exists
             if(!appState.history[appState.currentDate]) {
                 appState.history[appState.currentDate] = { consumed: 0, foodLog: [] };
             }
@@ -815,7 +790,6 @@
             showToast(isToday ? "식단이 성공적으로 기록되었습니다!" : "과거 기록이 추가되었습니다!");
         }
 
-        // --- Helpers ---
         function updateAIFeedback(foodLog, isOverflown = false, excessKcal = 0) {
             const feedbackEl = document.getElementById('ai-feedback-text');
             
@@ -824,7 +798,6 @@
                 return;
             }
 
-            // 권장 칼로리 초과 상태일 때 긴급 피드백 우선 노출
             if (isOverflown) {
                 feedbackEl.innerHTML = `
                     <span class="inline-block px-2 py-0.5 bg-red-100 text-red-700 text-xs font-black rounded mb-1">⚠️ 일일 권장량 초과</span><br>
@@ -834,7 +807,6 @@
                 return;
             }
 
-            // 가장 최근에 먹은 음식 기준 (배열의 0번째가 최신)
             const latestFood = foodLog[0];
             const timeParts = latestFood.time.split(':');
             const hour = parseInt(timeParts[0]);
@@ -844,7 +816,6 @@
             let timeAdvice = "";
             let foodPraise = "";
 
-            // 1. 음식 키워드에 따른 맞춤형 긍정 멘트 작성
             if (foodName.includes("샐러드") || foodName.includes("야채") || foodName.includes("채소") || foodName.includes("과일")) {
                 foodPraise = `건강을 생각한 가벼운 식단 관리가 정말 훌륭해요! 🥗`;
             } else if (foodName.includes("고기") || foodName.includes("치킨") || foodName.includes("닭가슴살") || foodName.includes("두부")) {
@@ -855,7 +826,6 @@
                 foodPraise = `정말 탁월하고 맛있는 메뉴 선택이에요! 보기만 해도 군침이 도네요. 😋`;
             }
 
-            // 2. 시간대에 따른 인사와 조언
             if (hour >= 5 && hour < 11) {
                 timeGreeting = "하루를 여는 아침 식사네요!";
                 timeAdvice = "오전 중에는 물을 자주 마셔주면 신진대사와 혈액순환에 아주 좋습니다.";
@@ -902,23 +872,19 @@
             }, 2500);
         }
 
-        // --- Admin Mode Logic ---
         let adminClickCount = 0;
         let adminClickTimer = null;
 
         function handleAdminClick() {
             adminClickCount++;
-            
-            // 1초 이내에 연속 클릭하지 않으면 카운트 초기화
             clearTimeout(adminClickTimer);
             adminClickTimer = setTimeout(() => {
                 adminClickCount = 0;
             }, 1000);
 
-            // 10번 연속 클릭 시 트리거
             if (adminClickCount >= 10) {
-                adminClickCount = 0; // 카운트 리셋
-                openPasswordModal(); // prompt() 대신 커스텀 모달 호출
+                adminClickCount = 0;
+                openPasswordModal();
             }
         }
 
@@ -954,7 +920,7 @@
                 closePasswordModal();
                 setTimeout(() => {
                     openAdminModal();
-                }, 300); // 닫히는 애니메이션 후 열기
+                }, 300);
             } else {
                 showToast("비밀번호가 일치하지 않습니다.");
                 document.getElementById('admin-password-input').value = '';
@@ -963,22 +929,18 @@
         }
 
         function openAdminModal() {
-            // 오늘 업로드 횟수 계산
             const todayStr = getTodayString();
             const todayData = appState.history[todayStr];
             const todayCount = todayData ? todayData.foodLog.length : 0;
             
-            // 전체 업로드 횟수 계산
             let totalCount = 0;
             for (const dateKey in appState.history) {
                 totalCount += appState.history[dateKey].foodLog.length;
             }
 
-            // DOM 업데이트
             document.getElementById('admin-today-count').innerText = todayCount + "건";
             document.getElementById('admin-total-count').innerText = totalCount + "건";
 
-            // 모달 표시
             const modal = document.getElementById('admin-modal');
             const content = document.getElementById('admin-modal-content');
             
@@ -1000,7 +962,6 @@
                 modal.classList.add('hidden');
             }, 300);
         }
-
     </script>
 </body>
 </html>
