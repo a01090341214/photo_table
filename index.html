@@ -34,11 +34,21 @@
         .fade-enter { opacity: 0; transform: translateY(10px); }
         .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
         .progress-ring__circle {
-            transition: stroke-dashoffset 0.5s ease-in-out;
+            transition: stroke-dashoffset 0.5s ease-in-out, stroke 0.3s ease;
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
         }
         
+        /* Calorie warning pulse animation */
+        @keyframes pulse-danger {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        }
+        .overflow-alert-card {
+            animation: pulse-danger 2s infinite ease-in-out;
+            border-color: #f87171 !important;
+        }
+
         /* Custom file input wrapper */
         .file-upload-wrapper {
             position: relative;
@@ -125,9 +135,14 @@
         <div id="view-dashboard" class="hidden flex-1 overflow-y-auto bg-gray-50 flex flex-col relative pb-6">
             
             <!-- Summary Card -->
-            <div class="bg-white p-6 rounded-b-3xl shadow-sm mb-4">
+            <div id="summary-card" class="bg-white p-6 rounded-b-3xl shadow-sm mb-4 transition-all duration-300 border-b-2 border-transparent">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-bold">식단 요약</h2>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-lg font-bold">식단 요약</h2>
+                        <span id="overflow-badge" class="hidden px-2 py-0.5 text-xs font-bold bg-red-100 text-red-600 rounded-full flex items-center gap-1 animate-pulse">
+                            <i class="fa-solid fa-triangle-exclamation"></i> 칼로리 초과
+                        </span>
+                    </div>
                     <div class="flex items-center gap-3 bg-gray-100 rounded-full px-3 py-1">
                         <button onclick="changeDate(-1)" class="text-gray-400 hover:text-gray-800 transition-colors p-1"><i class="fa-solid fa-chevron-left text-xs"></i></button>
                         <span class="text-xs font-bold text-gray-700 min-w-[50px] text-center" id="display-date">오늘</span>
@@ -143,20 +158,20 @@
                     </svg>
                     <div class="absolute flex flex-col items-center justify-center text-center">
                         <span class="text-gray-500 text-xs font-medium mb-1">섭취한 칼로리</span>
-                        <span class="text-3xl font-black text-gray-800" id="display-consumed">0</span>
+                        <span class="text-3xl font-black text-gray-800 transition-colors duration-300" id="display-consumed">0</span>
                         <span class="text-gray-400 text-xs font-medium mt-1">/ <span id="display-goal">2000</span> kcal</span>
                     </div>
                 </div>
 
                 <div class="flex justify-around text-center border-t border-gray-100 pt-4">
                     <div>
-                        <p class="text-xs text-gray-400 font-medium mb-1">남은 칼로리</p>
-                        <p class="text-lg font-bold text-blue-500" id="display-remaining">2000</p>
+                        <p class="text-xs text-gray-400 font-medium mb-1" id="remaining-label">남은 칼로리</p>
+                        <p class="text-lg font-bold text-blue-500 transition-colors duration-300" id="display-remaining">2000</p>
                     </div>
                     <div class="w-px bg-gray-200"></div>
                     <div>
                         <p class="text-xs text-gray-400 font-medium mb-1">목표 달성률</p>
-                        <p class="text-lg font-bold text-primary" id="display-percent">0%</p>
+                        <p class="text-lg font-bold text-primary transition-colors duration-300" id="display-percent">0%</p>
                     </div>
                 </div>
             </div>
@@ -497,8 +512,9 @@
         function updateDashboardUI() {
             const todayData = appState.history[appState.currentDate];
             const consumed = todayData ? todayData.consumed : 0;
+            const goalKcal = appState.profile.goalKcal || 2000;
 
-            document.getElementById('display-goal').innerText = appState.profile.goalKcal.toLocaleString();
+            document.getElementById('display-goal').innerText = goalKcal.toLocaleString();
             document.getElementById('display-date').innerText = formatDateDisplay(appState.currentDate);
             
             const isToday = appState.currentDate === getTodayString();
@@ -508,31 +524,67 @@
             const currentDisplayVal = parseInt(document.getElementById('display-consumed').innerText.replace(/,/g, '')) || 0;
             animateValue("display-consumed", currentDisplayVal, consumed, 500);
             
-            let remaining = appState.profile.goalKcal - consumed;
-            document.getElementById('display-remaining').innerText = remaining > 0 ? remaining.toLocaleString() : 0;
-            if(remaining < 0) {
-                document.getElementById('display-remaining').classList.replace('text-blue-500', 'text-red-500');
+            let diff = goalKcal - consumed;
+            const remainingLabelEl = document.getElementById('remaining-label');
+            const remainingEl = document.getElementById('display-remaining');
+            const consumedEl = document.getElementById('display-consumed');
+            const percentEl = document.getElementById('display-percent');
+            const summaryCardEl = document.getElementById('summary-card');
+            const overflowBadgeEl = document.getElementById('overflow-badge');
+            const circle = document.getElementById('progress-circle');
+
+            const isOverflown = diff < 0;
+            let percent = Math.round((consumed / goalKcal) * 100);
+
+            if (isOverflown) {
+                // 초과 상태 처리 (강렬한 빨강 강조)
+                const excess = Math.abs(diff);
+                remainingLabelEl.innerText = "초과 칼로리";
+                remainingLabelEl.classList.add('text-red-500');
+                
+                remainingEl.innerText = `+${excess.toLocaleString()}`;
+                remainingEl.className = "text-lg font-extrabold text-red-600 animate-bounce";
+
+                consumedEl.classList.add('text-red-600');
+                percentEl.className = "text-lg font-black text-red-600";
+                percentEl.innerText = `${percent}% (초과)`;
+
+                overflowBadgeEl.classList.remove('hidden');
+                summaryCardEl.classList.add('overflow-alert-card');
+
+                // 원형 게이지 빨간색 풀충전
+                circle.classList.remove('text-primary');
+                circle.classList.add('text-red-500');
+                circle.style.strokeDashoffset = 0;
             } else {
-                document.getElementById('display-remaining').classList.replace('text-red-500', 'text-blue-500');
+                // 정상/여유 상태 복원
+                remainingLabelEl.innerText = "남은 칼로리";
+                remainingLabelEl.classList.remove('text-red-500');
+
+                remainingEl.innerText = diff.toLocaleString();
+                remainingEl.className = "text-lg font-bold text-blue-500";
+
+                consumedEl.classList.remove('text-red-600');
+                percentEl.className = "text-lg font-bold text-primary";
+                percentEl.innerText = `${percent}%`;
+
+                overflowBadgeEl.classList.add('hidden');
+                summaryCardEl.classList.remove('overflow-alert-card');
+
+                circle.classList.remove('text-red-500');
+                circle.classList.add('text-primary');
+
+                // Circle Progress offset
+                const radius = circle.r.baseVal.value;
+                const circumference = radius * 2 * Math.PI;
+                const clampedPercent = Math.min(percent, 100);
+                const offset = circumference - (clampedPercent / 100) * circumference;
+                circle.style.strokeDasharray = `${circumference} ${circumference}`;
+                circle.style.strokeDashoffset = offset;
             }
 
-            let percent = Math.min(Math.round((consumed / appState.profile.goalKcal) * 100), 100);
-            document.getElementById('display-percent').innerText = `${percent}%`;
-
-            // Update Circle
-            const circle = document.getElementById('progress-circle');
-            const radius = circle.r.baseVal.value;
-            const circumference = radius * 2 * Math.PI;
-            const offset = circumference - (percent / 100) * circumference;
-            circle.style.strokeDasharray = `${circumference} ${circumference}`;
-            circle.style.strokeDashoffset = offset;
-
-            // Colors based on state
-            if(percent > 100) circle.classList.replace('text-primary', 'text-red-500');
-            else circle.classList.replace('text-red-500', 'text-primary');
-
             renderFoodList(todayData ? todayData.foodLog : []);
-            updateAIFeedback(todayData ? todayData.foodLog : []);
+            updateAIFeedback(todayData ? todayData.foodLog : [], isOverflown, Math.abs(diff));
         }
 
         function renderFoodList(foodLog) {
@@ -764,11 +816,21 @@
         }
 
         // --- Helpers ---
-        function updateAIFeedback(foodLog) {
+        function updateAIFeedback(foodLog, isOverflown = false, excessKcal = 0) {
             const feedbackEl = document.getElementById('ai-feedback-text');
             
             if (!foodLog || foodLog.length === 0) {
                 feedbackEl.innerHTML = "아직 기록된 식단이 없습니다.<br>사진을 올려주시면 식습관 피드백을 드릴게요!";
+                return;
+            }
+
+            // 권장 칼로리 초과 상태일 때 긴급 피드백 우선 노출
+            if (isOverflown) {
+                feedbackEl.innerHTML = `
+                    <span class="inline-block px-2 py-0.5 bg-red-100 text-red-700 text-xs font-black rounded mb-1">⚠️ 일일 권장량 초과</span><br>
+                    오늘 권장 섭취량을 <strong>${excessKcal.toLocaleString()} kcal</strong> 초과했어요!<br>
+                    과도한 부담을 가질 필요는 없지만, 남은 시간엔 달콤한 간식이나 야식을 피하고 <strong>충분한 수분 섭취와 가벼운 스트레칭</strong>으로 소화를 도와주세요. 💪
+                `;
                 return;
             }
 
