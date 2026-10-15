@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       cleanBase64 = parts[1];
     }
 
-    // ⭐ 수정된 부분: 모델 이름을 실제 존재하는 gemini-1.5-flash 로 변경했습니다.
+    // ⭐ 제가 실수했던 부분입니다! 2.5가 아니라 1.5로 올바르게 수정되었습니다. ⭐
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const systemInstruction =
@@ -69,8 +69,8 @@ export default async function handler(req, res) {
         responseSchema: {
           type: "OBJECT",
           properties: {
-            name: { type: "STRING", description: "식별된 한국어 대표 요리명 (예: 김치찌개, 제육덮밥)" },
-            desc: { type: "STRING", description: "추정 분량 및 설명 (예: 밥 1공기 포함 기준, 약 1인분)" },
+            name: { type: "STRING", description: "식별된 한국어 대표 요리명 (예: 군고구마, 제육덮밥)" },
+            desc: { type: "STRING", description: "추정 분량 및 설명 (예: 중간 크기 1개 기준)" },
             baseKcal: { type: "INTEGER", description: "1인분 기준 추정 총 칼로리(kcal, 정수)" },
             carbs: { type: "INTEGER", description: "탄수화물 g (정수)" },
             protein: { type: "INTEGER", description: "단백질 g (정수)" },
