@@ -449,11 +449,118 @@
             });
         }
         function changeDate(dir) { /* 날짜 변경 로직 */ }
-        function startAnalysis() {
-            // 여기에 백엔드(Vercel) /api/diet 를 호출하는 로직이 들어갑니다.
+        
+        // 🚨 제가 실수로 지웠던 핵심 API 통신 코드를 완벽하게 복구했습니다!
+        async function startAnalysis() {
+            const imgPreview = document.getElementById('image-preview');
+            const base64Image = imgPreview.src;
+            
+            if (!base64Image || base64Image.includes('hidden')) {
+                showMessage("이미지를 선택해주세요.");
+                return;
+            }
+
+            // 로딩 애니메이션 켜기
             document.getElementById('scan-line').classList.remove('hidden');
             document.getElementById('scan-line').style.animation = 'scan 2s infinite linear';
-            showMessage("Vercel 서버로 분석을 요청합니다. (이후 로직 연결 필요)");
+            const analyzeBtn = document.getElementById('btn-analyze');
+            const originalBtnText = analyzeBtn.innerHTML;
+            analyzeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> AI 분석 중...';
+            analyzeBtn.disabled = true;
+
+            try {
+                // 선생님께서 고생해서 고치셨던 Vercel 백엔드(/api/diet)로 이미지 전송!
+                const response = await fetch('/api/diet', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64Image })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || "서버 에러");
+                }
+
+                // 분석 성공 시 화면에 음식 카드 추가
+                if (result.success && result.data) {
+                    addFoodToList(result.data, base64Image);
+                    closeUploadModal();
+                    showMessage(`${result.data.name} 분석이 완료되었습니다!`);
+                } else {
+                    throw new Error("분석 결과를 찾을 수 없습니다.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                showMessage("AI 분석 에러: " + error.message);
+            } finally {
+                // 로딩 애니메이션 끄기
+                document.getElementById('scan-line').classList.add('hidden');
+                analyzeBtn.innerHTML = originalBtnText;
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        // 분석된 결과(칼로리, 영양소)를 화면에 예쁘게 그려주는 함수
+        function addFoodToList(data, imgSrc) {
+            const foodList = document.getElementById('food-list');
+            const emptyState = document.getElementById('empty-state');
+            if(emptyState) emptyState.remove(); // '아직 기록된 식단이 없습니다' 문구 제거
+
+            const foodCard = document.createElement('div');
+            foodCard.className = 'bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex gap-4 fade-enter fade-enter-active';
+            foodCard.innerHTML = `
+                <img src="${imgSrc}" class="w-20 h-20 object-cover rounded-xl border border-gray-100">
+                <div class="flex-1">
+                    <div class="flex justify-between items-start mb-1">
+                        <h4 class="font-bold text-gray-800">${data.name}</h4>
+                        <span class="text-[10px] font-bold text-primary bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                            <i class="fa-solid fa-check"></i> AI 분석
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-2 line-clamp-1">${data.desc}</p>
+                    <div class="flex justify-between items-end">
+                        <p class="text-lg font-black text-gray-800">${data.baseKcal} <span class="text-xs font-medium text-gray-400">kcal</span></p>
+                        <div class="flex gap-1">
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-orange-600">탄 ${data.carbs}g</span>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">단 ${data.protein}g</span>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-50 text-red-600">지 ${data.fat}g</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            foodList.prepend(foodCard);
+
+            // 중앙의 섭취한 칼로리 원형 그래프 업데이트
+            const consumedEl = document.getElementById('display-consumed');
+            let currentKcal = parseInt(consumedEl.innerText) || 0;
+            consumedEl.innerText = currentKcal + data.baseKcal;
+            
+            updateProgressUI();
+        }
+
+        function updateProgressUI() {
+            const consumed = parseInt(document.getElementById('display-consumed').innerText) || 0;
+            const goal = parseInt(document.getElementById('display-goal').innerText) || 2000;
+            const remaining = goal - consumed;
+            
+            document.getElementById('display-remaining').innerText = remaining > 0 ? remaining : Math.abs(remaining);
+            
+            // 칼로리 초과 시 빨간색 경고 효과
+            if(remaining < 0) {
+                document.getElementById('overflow-badge').classList.remove('hidden');
+                document.getElementById('summary-card').classList.add('overflow-alert-card');
+                document.getElementById('remaining-label').innerText = "초과 칼로리";
+                document.getElementById('display-remaining').classList.replace('text-blue-500', 'text-red-500');
+            }
+
+            let percent = Math.min(Math.round((consumed / goal) * 100), 100);
+            document.getElementById('display-percent').innerText = percent + '%';
+            
+            const circle = document.getElementById('progress-circle');
+            const circumference = 314.159; 
+            circle.style.strokeDashoffset = circumference - (percent / 100) * circumference;
         }
     </script>
 </body>
