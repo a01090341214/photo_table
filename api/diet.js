@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     }
 
     // 5. 구글 Gemini API 호출
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
     const payload = {
       contents: [
