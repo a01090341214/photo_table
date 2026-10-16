@@ -89,7 +89,7 @@
                     <div class="flex items-center gap-2">
                         <h2 class="text-lg font-bold">식단 요약</h2>
                         <span id="overflow-badge" class="hidden px-2 py-0.5 text-xs font-bold bg-red-100 text-red-600 rounded-full flex items-center gap-1 animate-pulse">
-                            <i class="fa-solid fa-triangle-exclamation"></i> 칼로 초과
+                            <i class="fa-solid fa-triangle-exclamation"></i> 초과
                         </span>
                     </div>
                     <div class="flex items-center gap-3 bg-gray-100 rounded-full px-3 py-1">
@@ -180,8 +180,8 @@
                 <div id="scanning-overlay" class="absolute inset-0 flex flex-col items-center justify-center z-10">
                     <div class="w-full h-1 bg-primary absolute top-0 left-0 shadow-[0_0_15px_#10B981] animate-[scan_2s_ease-in-out_infinite]"></div>
                     <i class="fa-solid fa-magnifying-glass text-4xl text-primary mb-4 animate-bounce"></i>
-                    <p class="font-bold text-lg animate-pulse">Gemini AI가 요리를 분석 중...</p>
-                    <p class="text-xs text-white/60 mt-2 text-center px-10">사진 속 재료와 조리법을 감별하여<br>칼로리와 탄단지를 계산하고 있습니다.</p>
+                    <p class="font-bold text-lg animate-pulse">Gemini AI 분석 중...</p>
+                    <p class="text-xs text-white/60 mt-2 text-center px-10">사진 속 음식을 감별하고 있습니다.</p>
                 </div>
             </div>
             <div id="result-container" class="hidden flex-1 bg-white text-gray-800 rounded-t-3xl -mt-6 z-10 p-6 flex flex-col relative">
@@ -219,83 +219,20 @@
     </div>
 
     <script>
+        // 기본 앱 상태 및 UI 로직 (이전과 동일)
         let appState = { profile: { gender: null, age: null, height: null, weight: null, activity: 1.55, goalKcal: 2000 }, currentDate: getTodayString(), history: {}, tempAnalysis: null };
-
         function getTodayString() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function formatDateDisplay(dateStr) { const today = getTodayString(); if (dateStr === today) return "오늘"; const d = new Date(dateStr); return `${d.getMonth() + 1}월 ${d.getDate()}일`; }
         function changeDate(offset) { const d = new Date(appState.currentDate); d.setDate(d.getDate() + offset); appState.currentDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; if(!appState.history[appState.currentDate]) appState.history[appState.currentDate] = { consumed: 0, foodLog: [] }; updateDashboardUI(); }
-
-        function initApp() {
-            const saved = localStorage.getItem('aiDietData');
-            if (saved) {
-                const parsed = JSON.parse(saved); appState.profile = parsed.profile || appState.profile; appState.history = parsed.history || {}; appState.currentDate = getTodayString();
-                if(!appState.history[appState.currentDate]) appState.history[appState.currentDate] = { consumed: 0, foodLog: [] };
-                if (appState.profile.gender && appState.profile.age) { showView('view-dashboard'); updateDashboardUI(); return; }
-            } else { appState.history[appState.currentDate] = { consumed: 0, foodLog: [] }; }
-        }
-        function saveData() { try { localStorage.setItem('aiDietData', JSON.stringify({ profile: appState.profile, history: appState.history })); } catch (error) { console.warn(error); } }
+        function initApp() { const saved = localStorage.getItem('aiDietData'); if (saved) { const parsed = JSON.parse(saved); appState.profile = parsed.profile || appState.profile; appState.history = parsed.history || {}; appState.currentDate = getTodayString(); if(!appState.history[appState.currentDate]) appState.history[appState.currentDate] = { consumed: 0, foodLog: [] }; if (appState.profile.gender && appState.profile.age) { showView('view-dashboard'); updateDashboardUI(); return; } } else { appState.history[appState.currentDate] = { consumed: 0, foodLog: [] }; } }
+        function saveData() { try { localStorage.setItem('aiDietData', JSON.stringify({ profile: appState.profile, history: appState.history })); } catch (e) {} }
         window.onload = initApp;
-
-        function showView(viewId) {
-            document.getElementById('view-onboarding').classList.add('hidden'); document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-analysis').classList.add('hidden');
-            const target = document.getElementById(viewId); target.classList.remove('hidden'); target.classList.add('fade-enter', 'fade-enter-active'); setTimeout(() => target.classList.remove('fade-enter', 'fade-enter-active'), 300);
-        }
-
-        function resetApp() {
-            if(confirm("모든 설정과 식단 기록이 삭제됩니다. 계속하시겠습니까?")) {
-                localStorage.removeItem('aiDietData'); appState.history = {}; appState.currentDate = getTodayString(); appState.history[appState.currentDate] = { consumed: 0, foodLog: [] };
-                appState.profile = { gender: null, age: null, height: null, weight: null, activity: 1.55, goalKcal: 2000 }; appState.tempAnalysis = null;
-                document.getElementById('input-age').value = ''; document.getElementById('input-height').value = ''; document.getElementById('input-weight').value = ''; updateDashboardUI(); showView('view-onboarding');
-            }
-        }
-
-        function setGender(gender) {
-            appState.profile.gender = gender; document.getElementById('btn-gender-m').classList.remove('border-primary', 'bg-primary/10', 'text-primary'); document.getElementById('btn-gender-f').classList.remove('border-primary', 'bg-primary/10', 'text-primary');
-            if(gender === 'M') document.getElementById('btn-gender-m').classList.add('border-primary', 'bg-primary/10', 'text-primary'); if(gender === 'F') document.getElementById('btn-gender-f').classList.add('border-primary', 'bg-primary/10', 'text-primary');
-        }
-
-        function calculateProfile() {
-            const age = parseInt(document.getElementById('input-age').value); const height = parseInt(document.getElementById('input-height').value); const weight = parseInt(document.getElementById('input-weight').value); const activity = parseFloat(document.getElementById('input-activity').value);
-            if(!appState.profile.gender || !age || !height || !weight) { showToast("모든 정보를 입력해주세요."); return; }
-            appState.profile.age = age; appState.profile.height = height; appState.profile.weight = weight; appState.profile.activity = activity;
-            let bmr = appState.profile.gender === 'M' ? (10 * weight) + (6.25 * height) - (5 * age) + 5 : (10 * weight) + (6.25 * height) - (5 * age) - 161;
-            appState.profile.goalKcal = Math.round(bmr * activity);
-            saveData(); updateDashboardUI(); showView('view-dashboard');
-        }
-
-        function updateDashboardUI() {
-            const todayData = appState.history[appState.currentDate]; const consumed = todayData ? todayData.consumed : 0; const goalKcal = appState.profile.goalKcal || 2000;
-            document.getElementById('display-goal').innerText = goalKcal.toLocaleString(); document.getElementById('display-date').innerText = formatDateDisplay(appState.currentDate);
-            document.getElementById('food-list-title').innerText = appState.currentDate === getTodayString() ? "오늘 먹은 음식" : `${formatDateDisplay(appState.currentDate)} 식단`;
-            animateValue("display-consumed", parseInt(document.getElementById('display-consumed').innerText.replace(/,/g, '')) || 0, consumed, 500);
-            
-            let diff = goalKcal - consumed; const isOverflown = diff < 0; let percent = Math.round((consumed / goalKcal) * 100);
-            const remainingLabelEl = document.getElementById('remaining-label'); const remainingEl = document.getElementById('display-remaining'); const consumedEl = document.getElementById('display-consumed'); const percentEl = document.getElementById('display-percent'); const summaryCardEl = document.getElementById('summary-card'); const overflowBadgeEl = document.getElementById('overflow-badge'); const circle = document.getElementById('progress-circle');
-
-            if (isOverflown) {
-                remainingLabelEl.innerText = "초과 칼로리"; remainingLabelEl.classList.add('text-red-500'); remainingEl.innerText = `+${Math.abs(diff).toLocaleString()}`; remainingEl.className = "text-lg font-extrabold text-red-600 animate-bounce";
-                consumedEl.classList.add('text-red-600'); percentEl.className = "text-lg font-black text-red-600"; percentEl.innerText = `${percent}% (초과)`; overflowBadgeEl.classList.remove('hidden'); summaryCardEl.classList.add('overflow-alert-card'); circle.classList.remove('text-primary'); circle.classList.add('text-red-500'); circle.style.strokeDashoffset = 0;
-            } else {
-                remainingLabelEl.innerText = "남은 칼로리"; remainingLabelEl.classList.remove('text-red-500'); remainingEl.innerText = diff.toLocaleString(); remainingEl.className = "text-lg font-bold text-blue-500";
-                consumedEl.classList.remove('text-red-600'); percentEl.className = "text-lg font-bold text-primary"; percentEl.innerText = `${percent}%`; overflowBadgeEl.classList.add('hidden'); summaryCardEl.classList.remove('overflow-alert-card'); circle.classList.remove('text-red-500'); circle.classList.add('text-primary');
-                const circumference = circle.r.baseVal.value * 2 * Math.PI; circle.style.strokeDasharray = `${circumference} ${circumference}`; circle.style.strokeDashoffset = circumference - (Math.min(percent, 100) / 100) * circumference;
-            }
-            renderFoodList(todayData ? todayData.foodLog : []); updateAIFeedback(todayData ? todayData.foodLog : [], isOverflown, Math.abs(diff));
-        }
-
-        function renderFoodList(foodLog) {
-            const list = document.getElementById('food-list'); const emptyState = document.getElementById('empty-state');
-            Array.from(list.children).forEach(child => { if(child.id !== 'empty-state') child.remove(); });
-            if (!foodLog || foodLog.length === 0) { emptyState.style.display = 'block'; } else {
-                emptyState.style.display = 'none';
-                foodLog.forEach((food) => {
-                    const item = document.createElement('div'); item.className = "bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center fade-enter fade-enter-active";
-                    item.innerHTML = `<div class="flex items-center gap-4"><div class="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden relative"><img src="${food.image}" class="w-full h-full object-cover"></div><div><p class="font-bold text-gray-800">${food.name}</p><p class="text-xs text-gray-400">${food.time} • ${food.portion}% 섭취</p></div></div><div class="text-right"><p class="font-black text-gray-800">${food.kcal} <span class="text-xs font-normal text-gray-500">kcal</span></p></div>`;
-                    list.appendChild(item);
-                });
-            }
-        }
-
+        function showView(viewId) { document.getElementById('view-onboarding').classList.add('hidden'); document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-analysis').classList.add('hidden'); const target = document.getElementById(viewId); target.classList.remove('hidden'); target.classList.add('fade-enter', 'fade-enter-active'); setTimeout(() => target.classList.remove('fade-enter', 'fade-enter-active'), 300); }
+        function resetApp() { if(confirm("모든 설정과 기록이 삭제됩니다. 계속하시겠습니까?")) { localStorage.removeItem('aiDietData'); location.reload(); } }
+        function setGender(gender) { appState.profile.gender = gender; document.getElementById('btn-gender-m').classList.remove('border-primary', 'bg-primary/10', 'text-primary'); document.getElementById('btn-gender-f').classList.remove('border-primary', 'bg-primary/10', 'text-primary'); if(gender === 'M') document.getElementById('btn-gender-m').classList.add('border-primary', 'bg-primary/10', 'text-primary'); if(gender === 'F') document.getElementById('btn-gender-f').classList.add('border-primary', 'bg-primary/10', 'text-primary'); }
+        function calculateProfile() { const age = parseInt(document.getElementById('input-age').value); const height = parseInt(document.getElementById('input-height').value); const weight = parseInt(document.getElementById('input-weight').value); const activity = parseFloat(document.getElementById('input-activity').value); if(!appState.profile.gender || !age || !height || !weight) { showToast("모든 정보를 입력해주세요."); return; } appState.profile.age = age; appState.profile.height = height; appState.profile.weight = weight; appState.profile.activity = activity; let bmr = appState.profile.gender === 'M' ? (10 * weight) + (6.25 * height) - (5 * age) + 5 : (10 * weight) + (6.25 * height) - (5 * age) - 161; appState.profile.goalKcal = Math.round(bmr * activity); saveData(); updateDashboardUI(); showView('view-dashboard'); }
+        function updateDashboardUI() { const todayData = appState.history[appState.currentDate]; const consumed = todayData ? todayData.consumed : 0; const goalKcal = appState.profile.goalKcal || 2000; document.getElementById('display-goal').innerText = goalKcal.toLocaleString(); document.getElementById('display-date').innerText = formatDateDisplay(appState.currentDate); document.getElementById('food-list-title').innerText = appState.currentDate === getTodayString() ? "오늘 먹은 음식" : `${formatDateDisplay(appState.currentDate)} 식단`; animateValue("display-consumed", parseInt(document.getElementById('display-consumed').innerText.replace(/,/g, '')) || 0, consumed, 500); let diff = goalKcal - consumed; const isOverflown = diff < 0; let percent = Math.round((consumed / goalKcal) * 100); const remainingLabelEl = document.getElementById('remaining-label'); const remainingEl = document.getElementById('display-remaining'); const consumedEl = document.getElementById('display-consumed'); const percentEl = document.getElementById('display-percent'); const summaryCardEl = document.getElementById('summary-card'); const overflowBadgeEl = document.getElementById('overflow-badge'); const circle = document.getElementById('progress-circle'); if (isOverflown) { remainingLabelEl.innerText = "초과 칼로리"; remainingLabelEl.classList.add('text-red-500'); remainingEl.innerText = `+${Math.abs(diff).toLocaleString()}`; remainingEl.className = "text-lg font-extrabold text-red-600 animate-bounce"; consumedEl.classList.add('text-red-600'); percentEl.className = "text-lg font-black text-red-600"; percentEl.innerText = `${percent}% (초과)`; overflowBadgeEl.classList.remove('hidden'); summaryCardEl.classList.add('overflow-alert-card'); circle.classList.remove('text-primary'); circle.classList.add('text-red-500'); circle.style.strokeDashoffset = 0; } else { remainingLabelEl.innerText = "남은 칼로리"; remainingLabelEl.classList.remove('text-red-500'); remainingEl.innerText = diff.toLocaleString(); remainingEl.className = "text-lg font-bold text-blue-500"; consumedEl.classList.remove('text-red-600'); percentEl.className = "text-lg font-bold text-primary"; percentEl.innerText = `${percent}%`; overflowBadgeEl.classList.add('hidden'); summaryCardEl.classList.remove('overflow-alert-card'); circle.classList.remove('text-red-500'); circle.classList.add('text-primary'); const circumference = circle.r.baseVal.value * 2 * Math.PI; circle.style.strokeDasharray = `${circumference} ${circumference}`; circle.style.strokeDashoffset = circumference - (Math.min(percent, 100) / 100) * circumference; } renderFoodList(todayData ? todayData.foodLog : []); updateAIFeedback(todayData ? todayData.foodLog : [], isOverflown, Math.abs(diff)); }
+        function renderFoodList(foodLog) { const list = document.getElementById('food-list'); const emptyState = document.getElementById('empty-state'); Array.from(list.children).forEach(child => { if(child.id !== 'empty-state') child.remove(); }); if (!foodLog || foodLog.length === 0) { emptyState.style.display = 'block'; } else { emptyState.style.display = 'none'; foodLog.forEach((food) => { const item = document.createElement('div'); item.className = "bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center fade-enter fade-enter-active"; item.innerHTML = `<div class="flex items-center gap-4"><div class="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden relative"><img src="${food.image}" class="w-full h-full object-cover"></div><div><p class="font-bold text-gray-800">${food.name}</p><p class="text-xs text-gray-400">${food.time} • ${food.portion}% 섭취</p></div></div><div class="text-right"><p class="font-black text-gray-800">${food.kcal} <span class="text-xs font-normal text-gray-500">kcal</span></p></div>`; list.appendChild(item); }); } }
         function openUploadModal() { document.getElementById('upload-modal').classList.remove('hidden'); setTimeout(() => { document.getElementById('upload-sheet').classList.remove('translate-y-full'); }, 10); }
         function closeUploadModal() { document.getElementById('upload-sheet').classList.add('translate-y-full'); setTimeout(() => { document.getElementById('upload-modal').classList.add('hidden'); }, 300); }
 
@@ -317,9 +254,10 @@
             reader.readAsDataURL(file);
         }
 
+        // 🚨 이 부분이 자료에서 지적하신 "해결 방법 A"에 맞춰 /api/diet 라우트를 호출하는 부분입니다.
         async function analyzeImageWithAI(imageDataUrl) {
             try {
-                // ⭐ 애드블록/캐시를 피하기 위해 바꾼 완벽한 주소 (/api/diet) ⭐
+                // Vercel 서버리스 함수 호출
                 const response = await fetch('/api/diet', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -328,88 +266,30 @@
 
                 if (!response.ok) {
                     const errorJson = await response.json().catch(() => ({}));
-                    throw new Error(errorJson.error || "분석 서버 응답 실패");
+                    throw new Error(`분석 서버 응답 실패: ${response.status} - ${errorJson.error || ''}`);
                 }
 
                 const result = await response.json();
                 if (result.success && result.data) {
                     displayAnalysisResult(result.data, imageDataUrl);
                 } else {
-                    throw new Error("분석 데이터를 읽지 못했습니다.");
+                    throw new Error("서버에서 올바른 데이터를 받지 못했습니다.");
                 }
             } catch (err) {
                 console.error("AI 분석 에러:", err);
-                showToast("AI 에러: " + err.message);
-                displayAnalysisResult({ name: "음식 직접 입력", desc: "AI 분석에 실패하여 직접 작성이 필요합니다.", baseKcal: 500, carbs: 0, protein: 0, fat: 0 }, imageDataUrl);
+                showToast("오류 발생: " + err.message);
+                displayAnalysisResult({ name: "직접 입력 필요 (서버 에러)", desc: err.message, baseKcal: 500, carbs: 0, protein: 0, fat: 0 }, imageDataUrl);
             }
         }
 
-        function displayAnalysisResult(foodData, imageSrc) {
-            document.getElementById('scanning-overlay').classList.add('hidden'); const resultDiv = document.getElementById('result-container'); resultDiv.classList.remove('hidden'); resultDiv.classList.add('fade-enter', 'fade-enter-active');
-            appState.tempAnalysis = { name: foodData.name || "식별된 음식", baseKcal: foodData.baseKcal || 500, currentKcal: foodData.baseKcal || 500, carbs: foodData.carbs || 0, protein: foodData.protein || 0, fat: foodData.fat || 0, image: imageSrc, portion: 100 };
-            document.getElementById('result-name').innerText = foodData.name; document.getElementById('result-desc').innerText = foodData.desc || "1인분 기준 추정치"; document.getElementById('result-kcal').innerText = foodData.baseKcal; document.getElementById('result-carbs').innerText = `탄 ${foodData.carbs || 0}g`; document.getElementById('result-protein').innerText = `단 ${foodData.protein || 0}g`; document.getElementById('result-fat').innerText = `지 ${foodData.fat || 0}g`;
-        }
-
+        function displayAnalysisResult(foodData, imageSrc) { document.getElementById('scanning-overlay').classList.add('hidden'); const resultDiv = document.getElementById('result-container'); resultDiv.classList.remove('hidden'); resultDiv.classList.add('fade-enter', 'fade-enter-active'); appState.tempAnalysis = { name: foodData.name || "식별 불가", baseKcal: foodData.baseKcal || 0, currentKcal: foodData.baseKcal || 0, carbs: foodData.carbs || 0, protein: foodData.protein || 0, fat: foodData.fat || 0, image: imageSrc, portion: 100 }; document.getElementById('result-name').innerText = foodData.name || "알 수 없음"; document.getElementById('result-desc').innerText = foodData.desc || ""; document.getElementById('result-kcal').innerText = foodData.baseKcal || 0; document.getElementById('result-carbs').innerText = `탄 ${foodData.carbs || 0}g`; document.getElementById('result-protein').innerText = `단 ${foodData.protein || 0}g`; document.getElementById('result-fat').innerText = `지 ${foodData.fat || 0}g`; }
         function cancelAnalysis() { appState.tempAnalysis = null; document.querySelectorAll('input[type="file"]').forEach(input => input.value = ''); showView('view-dashboard'); }
-
-        function editFoodInfo() {
-            if(!appState.tempAnalysis) return;
-            const newName = prompt("정확한 음식 이름을 입력해주세요.", appState.tempAnalysis.name);
-            if(newName && newName.trim() !== "") {
-                let estimatedKcal = 500; const n = newName.replace(/\s+/g, '');
-                if (n.includes("샐러드")||n.includes("야채")||n.includes("채소")) estimatedKcal = 250;
-                else if (n.includes("닭가슴살")||n.includes("두부")||n.includes("단백질")) estimatedKcal = 300;
-                else if (n.includes("밥")||n.includes("찌개")||n.includes("면")) estimatedKcal = 600;
-                else if (n.includes("고기")||n.includes("치킨")||n.includes("피자")) estimatedKcal = 850;
-                else if (n.includes("케이크")||n.includes("빵")||n.includes("커피")) estimatedKcal = 450;
-                else estimatedKcal = 400 + (newName.length * 40) % 300;
-                appState.tempAnalysis.name = newName; appState.tempAnalysis.baseKcal = estimatedKcal; document.getElementById('result-name').innerText = newName; document.getElementById('result-desc').innerText = "사용자 직접 입력 (칼로리 자동 재설정)"; updatePortion(); showToast("칼로리가 자동 재설정되었습니다.");
-            }
-        }
-
-        function updatePortion() {
-            const val = document.getElementById('portion-slider').value; let label = `${val}%`;
-            if(val == 100) label = "100% (다 먹음)"; else if (val < 50) label = `${val}% (조금만 먹음)`; else if (val > 150) label = `${val}% (많이 먹음)`;
-            document.getElementById('portion-label').innerText = label;
-            if(appState.tempAnalysis) { appState.tempAnalysis.portion = val; appState.tempAnalysis.currentKcal = Math.round(appState.tempAnalysis.baseKcal * (val / 100)); document.getElementById('result-kcal').innerText = appState.tempAnalysis.currentKcal; }
-        }
-
-        function confirmFood() {
-            if(!appState.tempAnalysis) return;
-            const now = new Date(); const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-            if(!appState.history[appState.currentDate]) appState.history[appState.currentDate] = { consumed: 0, foodLog: [] };
-            appState.history[appState.currentDate].foodLog.unshift({ name: appState.tempAnalysis.name, kcal: appState.tempAnalysis.currentKcal, portion: appState.tempAnalysis.portion, image: appState.tempAnalysis.image, time: timeString });
-            appState.history[appState.currentDate].consumed += appState.tempAnalysis.currentKcal;
-            appState.tempAnalysis = null; document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
-            saveData(); updateDashboardUI(); showView('view-dashboard'); showToast(appState.currentDate === getTodayString() ? "식단이 성공적으로 기록되었습니다!" : "과거 기록이 추가되었습니다!");
-        }
-
-        function updateAIFeedback(foodLog, isOverflown = false, excessKcal = 0) {
-            const feedbackEl = document.getElementById('ai-feedback-text');
-            if (!foodLog || foodLog.length === 0) { feedbackEl.innerHTML = "아직 기록된 식단이 없습니다.<br>사진을 올려주시면 식습관 피드백을 드릴게요!"; return; }
-            if (isOverflown) { feedbackEl.innerHTML = `<span class="inline-block px-2 py-0.5 bg-red-100 text-red-700 text-xs font-black rounded mb-1">⚠️ 일일 권장량 초과</span><br>오늘 권장량을 <strong>${excessKcal.toLocaleString()} kcal</strong> 초과했어요! 충분한 수분 섭취와 가벼운 스트레칭으로 소화를 도와주세요. 💪`; return; }
-            const latestFood = foodLog[0]; const timeParts = latestFood.time.split(':'); const hour = parseInt(timeParts[0]); const foodName = latestFood.name;
-            let timeGreeting = "", timeAdvice = "", foodPraise = "";
-            if (foodName.includes("샐러드")||foodName.includes("야채")||foodName.includes("과일")) foodPraise = `가벼운 식단 관리가 훌륭해요! 🥗`;
-            else if (foodName.includes("고기")||foodName.includes("치킨")||foodName.includes("닭가슴살")) foodPraise = `든든한 단백질 섭취! 에너지 충전 완료. 💪`;
-            else if (foodName.includes("디저트")||foodName.includes("커피")||foodName.includes("빵")) foodPraise = `기분 전환에 최고죠! 달콤한 휴식 시간 🍰`;
-            else foodPraise = `탁월하고 맛있는 메뉴 선택이에요! 😋`;
-            if (hour >= 5 && hour < 11) { timeGreeting = "하루를 여는 아침!"; timeAdvice = "오전 중 물 섭취는 신진대사에 좋아요."; }
-            else if (hour >= 11 && hour < 17) { timeGreeting = "오후의 원동력이 될 식사!"; timeAdvice = "식후 10분 걷기로 식곤증을 예방하세요."; }
-            else if (hour >= 17 && hour < 22) { timeGreeting = "수고 많으셨어요. 보상 같은 저녁!"; timeAdvice = "수면을 위해 식후 3시간 뒤 취침을 권장해요."; }
-            else { timeGreeting = "즐거운 야식 타임!"; timeAdvice = "내일 붓지 않도록 충분히 소화시키고 주무세요."; }
-            feedbackEl.innerHTML = `<strong>${latestFood.time}</strong>에 <strong>${latestFood.name}</strong>을(를) 드셨군요.<br>${timeGreeting} ${foodPraise}<br><br><span class="inline-block mt-1 text-xs font-bold bg-blue-200 px-2 py-1 rounded text-blue-800">💡 찰칵 꿀팁: ${timeAdvice}</span>`;
-        }
-
-        function animateValue(id, start, end, duration) {
-            if (start === end) return; const obj = document.getElementById(id); let startTimestamp = null;
-            const step = (timestamp) => { if (!startTimestamp) startTimestamp = timestamp; const progress = Math.min((timestamp - startTimestamp) / duration, 1); obj.innerHTML = Math.floor(progress * (end - start) + start).toLocaleString(); if (progress < 1) window.requestAnimationFrame(step); }; window.requestAnimationFrame(step);
-        }
-
-        function showToast(message) {
-            const toast = document.createElement('div'); toast.className = "fixed top-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg z-50 fade-enter fade-enter-active"; toast.innerText = message; document.body.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translate(-50%, -10px)'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 2500);
-        }
+        function editFoodInfo() { if(!appState.tempAnalysis) return; const newName = prompt("음식 이름을 입력해주세요.", appState.tempAnalysis.name); if(newName && newName.trim() !== "") { appState.tempAnalysis.name = newName; document.getElementById('result-name').innerText = newName; } }
+        function updatePortion() { const val = document.getElementById('portion-slider').value; let label = `${val}%`; if(val == 100) label = "100% (다 먹음)"; else if (val < 50) label = `${val}% (조금만 먹음)`; else if (val > 150) label = `${val}% (많이 먹음)`; document.getElementById('portion-label').innerText = label; if(appState.tempAnalysis) { appState.tempAnalysis.portion = val; appState.tempAnalysis.currentKcal = Math.round(appState.tempAnalysis.baseKcal * (val / 100)); document.getElementById('result-kcal').innerText = appState.tempAnalysis.currentKcal; } }
+        function confirmFood() { if(!appState.tempAnalysis) return; const now = new Date(); const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`; if(!appState.history[appState.currentDate]) appState.history[appState.currentDate] = { consumed: 0, foodLog: [] }; appState.history[appState.currentDate].foodLog.unshift({ name: appState.tempAnalysis.name, kcal: appState.tempAnalysis.currentKcal, portion: appState.tempAnalysis.portion, image: appState.tempAnalysis.image, time: timeString }); appState.history[appState.currentDate].consumed += appState.tempAnalysis.currentKcal; appState.tempAnalysis = null; document.querySelectorAll('input[type="file"]').forEach(input => input.value = ''); saveData(); updateDashboardUI(); showView('view-dashboard'); showToast("기록되었습니다!"); }
+        function updateAIFeedback(foodLog, isOverflown = false, excessKcal = 0) { const feedbackEl = document.getElementById('ai-feedback-text'); if (!foodLog || foodLog.length === 0) { feedbackEl.innerHTML = "기록된 식단이 없습니다."; return; } if (isOverflown) { feedbackEl.innerHTML = `권장량을 <strong>${excessKcal.toLocaleString()} kcal</strong> 초과했습니다.`; return; } feedbackEl.innerHTML = `<strong>${foodLog[0].time}</strong>에 <strong>${foodLog[0].name}</strong>을(를) 드셨군요!`; }
+        function animateValue(id, start, end, duration) { if (start === end) return; const obj = document.getElementById(id); let startTimestamp = null; const step = (timestamp) => { if (!startTimestamp) startTimestamp = timestamp; const progress = Math.min((timestamp - startTimestamp) / duration, 1); obj.innerHTML = Math.floor(progress * (end - start) + start).toLocaleString(); if (progress < 1) window.requestAnimationFrame(step); }; window.requestAnimationFrame(step); }
+        function showToast(message) { const toast = document.createElement('div'); toast.className = "fixed top-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg z-50 fade-enter fade-enter-active"; toast.innerText = message; document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translate(-50%, -10px)'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 2500); }
     </script>
 </body>
 </html>
