@@ -29,7 +29,7 @@
         .overflow-alert-card { animation: pulse-danger 2s infinite ease-in-out; border-color: #f87171 !important; }
         @keyframes scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
         
-        /* 스크롤바 디자인 */
+        /* 스크롤바(range) 디자인 복구 */
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #10B981; cursor: pointer; margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #e5e7eb; border-radius: 3px; }
@@ -215,7 +215,7 @@
             </div>
         </div>
 
-        <!-- 공유 모달 -->
+        <!-- 공유 모달 (요청하신 기능 반영 완료) -->
         <div id="share-modal" class="hidden absolute inset-0 bg-black/60 z-50 flex justify-center items-end sm:items-center">
             <div class="bg-white w-full sm:w-[90%] rounded-t-3xl sm:rounded-3xl p-6 flex flex-col">
                 <div class="flex justify-between items-center mb-6">
@@ -239,7 +239,7 @@
             </div>
         </div>
 
-        <!-- 관리자 비밀번호 모달 -->
+        <!-- 관리자 비밀번호 모달 (0319) -->
         <div id="password-modal" class="hidden absolute inset-0 bg-black/60 z-50 flex justify-center items-center">
             <div class="bg-white w-[80%] max-w-sm rounded-3xl p-6 flex flex-col">
                 <h3 class="text-lg font-bold mb-2">관리자 인증</h3>
@@ -260,7 +260,7 @@
         let adminClickTimer = null;
         let compressedImageBase64 = null; 
         
-        // 음식 카드 관리를 위한 전역 변수
+        // 음식 카드 관리를 위한 전역 변수 (스크롤바 데이터 연동용)
         let foodItems = {}; 
 
         // 모달 및 뷰 전환 제어
@@ -424,7 +424,7 @@
             analyzeBtn.disabled = true;
 
             try {
-                // Vercel 서버로 요청 (gemini-3.7-flash 연동 완료 상태)
+                // Vercel 서버로 요청 (/api/diet)
                 const response = await fetch('/api/diet', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
