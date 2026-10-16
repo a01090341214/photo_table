@@ -360,7 +360,32 @@
         function editFoodInfo() { if(!appState.tempAnalysis) return; const newName = prompt("음식 이름을 입력해주세요.", appState.tempAnalysis.name); if(newName && newName.trim() !== "") { appState.tempAnalysis.name = newName; document.getElementById('result-name').innerText = newName; } }
         function updatePortion() { const val = document.getElementById('portion-slider').value; let label = `${val}%`; if(val == 100) label = "100% (다 먹음)"; else if (val < 50) label = `${val}% (조금만 먹음)`; else if (val > 150) label = `${val}% (많이 먹음)`; document.getElementById('portion-label').innerText = label; if(appState.tempAnalysis) { appState.tempAnalysis.portion = val; appState.tempAnalysis.currentKcal = Math.round(appState.tempAnalysis.baseKcal * (val / 100)); document.getElementById('result-kcal').innerText = appState.tempAnalysis.currentKcal; } }
         function confirmFood() { if(!appState.tempAnalysis) return; const now = new Date(); const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`; if(!appState.history[appState.currentDate]) appState.history[appState.currentDate] = { consumed: 0, foodLog: [] }; appState.history[appState.currentDate].foodLog.unshift({ name: appState.tempAnalysis.name, kcal: appState.tempAnalysis.currentKcal, portion: appState.tempAnalysis.portion, image: appState.tempAnalysis.image, time: timeString }); appState.history[appState.currentDate].consumed += appState.tempAnalysis.currentKcal; appState.tempAnalysis = null; document.querySelectorAll('input[type="file"]').forEach(input => input.value = ''); saveData(); updateDashboardUI(); showView('view-dashboard'); showToast("기록되었습니다!"); }
-        function updateAIFeedback(foodLog, isOverflown = false, excessKcal = 0) { const feedbackEl = document.getElementById('ai-feedback-text'); if (!foodLog || foodLog.length === 0) { feedbackEl.innerHTML = "기록된 식단이 없습니다."; return; } if (isOverflown) { feedbackEl.innerHTML = `권장량을 <strong>${excessKcal.toLocaleString()} kcal</strong> 초과했습니다.`; return; } feedbackEl.innerHTML = `<strong>${foodLog[0].time}</strong>에 <strong>${foodLog[0].name}</strong>을(를) 드셨군요!`; }
+        
+        function updateAIFeedback(foodLog, isOverflown = false, excessKcal = 0) {
+            const feedbackEl = document.getElementById('ai-feedback-text');
+            if (!foodLog || foodLog.length === 0) {
+                feedbackEl.innerHTML = "아직 기록된 식단이 없습니다. 맛있는 음식 사진을 올려주시면 피드백을 드릴게요!";
+                return;
+            }
+            if (isOverflown) {
+                feedbackEl.innerHTML = `앗! 하루 권장량을 <strong>${excessKcal.toLocaleString()} kcal</strong> 초과했어요.<br><span class="text-xs text-blue-600 mt-1 inline-block">오늘은 가벼운 산책으로 소화를 도와보는 건 어떨까요? 🏃‍♂️</span>`;
+                return;
+            }
+            
+            const lastFood = foodLog[0];
+            const hour = parseInt(lastFood.time.split(':')[0]);
+            
+            if (hour >= 5 && hour < 11) {
+                feedbackEl.innerHTML = `☀️ 활기찬 아침!<br><strong>${lastFood.time}</strong>에 드신 <strong>${lastFood.name}</strong>(이)가 오늘 하루의 든든한 에너지가 될 거예요.`;
+            } else if (hour >= 11 && hour < 17) {
+                feedbackEl.innerHTML = `☁️ 나른한 오후, <strong>${lastFood.name}</strong>(으)로 맛있는 충전 완료!<br><span class="text-xs text-blue-600 mt-1 inline-block">남은 칼로리를 잘 조절하며 남은 하루도 파이팅하세요.</span>`;
+            } else if (hour >= 17 && hour < 22) {
+                feedbackEl.innerHTML = `🌙 하루를 마무리하며 <strong>${lastFood.name}</strong>을(를) 드셨군요.<br><span class="text-xs text-blue-600 mt-1 inline-block">목표 칼로리 한도 내에서 아주 잘하고 계십니다!</span>`;
+            } else {
+                feedbackEl.innerHTML = `🦉 늦은 밤 <strong>${lastFood.time}</strong>에 <strong>${lastFood.name}</strong>을(를) 드셨네요.<br><span class="text-xs text-blue-600 mt-1 inline-block">소화가 잘 되도록 가볍게 움직인 후 주무시는 걸 추천해요!</span>`;
+            }
+        }
+
         function animateValue(id, start, end, duration) { if (start === end) return; const obj = document.getElementById(id); let startTimestamp = null; const step = (timestamp) => { if (!startTimestamp) startTimestamp = timestamp; const progress = Math.min((timestamp - startTimestamp) / duration, 1); obj.innerHTML = Math.floor(progress * (end - start) + start).toLocaleString(); if (progress < 1) window.requestAnimationFrame(step); }; window.requestAnimationFrame(step); }
         function showToast(message) { const toast = document.createElement('div'); toast.className = "fixed top-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg z-50 fade-enter fade-enter-active"; toast.innerText = message; document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translate(-50%, -10px)'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 2500); }
         
