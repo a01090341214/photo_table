@@ -32,8 +32,8 @@ module.exports = async function handler(req, res) {
       cleanBase64 = parts[1];
     }
 
-    // 원인 해결: 구글 시스템에 존재하는 정확한 모델명(1.5-flash)으로 복구
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // 변경점: 구글이 헷갈리지 않도록 명확한 세부 버전(-002) 하드코딩
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${apiKey}`;
 
     const payload = {
       contents: [{ role: "user", parts: [
@@ -64,7 +64,6 @@ const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1
       body: JSON.stringify(payload)
     });
 
-    // 에러 코드 분리: 구글 API 에러일 경우 502(Bad Gateway)를 반환하여 Vercel 404와 명확히 구분
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
       return res.status(502).json({ error: `Gemini API 에러 (${geminiResponse.status})`, details: errorText });
