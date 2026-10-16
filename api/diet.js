@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
     }
 
     // 원인 해결: 구글 시스템에 존재하는 정확한 모델명(1.5-flash)으로 복구
-    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
     const payload = {
       contents: [{ role: "user", parts: [
