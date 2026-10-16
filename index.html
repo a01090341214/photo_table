@@ -210,6 +210,59 @@
                 </button>
             </div>
         </div>
+
+        <!-- 공유 모달 -->
+        <div id="share-modal" class="hidden absolute inset-0 bg-black/60 z-50 flex justify-center items-end sm:items-center">
+            <div class="bg-white w-full sm:w-[90%] rounded-t-3xl sm:rounded-3xl p-6 flex flex-col animate-[translate-y_0.3s_ease-out]">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold">공유하기</h3>
+                    <button onclick="closeShareModal()" class="text-gray-400 hover:text-gray-600 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <!-- 카카오 채널 추가 -->
+                    <a href="http://pf.kakao.com/_kSxbnK" target="_blank" class="flex flex-col items-center gap-2 transition-transform active:scale-95">
+                        <div class="w-14 h-14 bg-[#FEE500] rounded-full flex items-center justify-center text-2xl text-[#391B1B] shadow-sm"><i class="fa-solid fa-comment"></i></div>
+                        <span class="text-xs font-medium text-gray-700">카카오 채널</span>
+                    </a>
+                    <!-- 카카오톡 친구 공유 (Web Share API) -->
+                    <button onclick="shareViaWebAPI()" class="flex flex-col items-center gap-2 transition-transform active:scale-95">
+                        <div class="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center text-2xl text-white shadow-sm"><i class="fa-solid fa-share-nodes"></i></div>
+                        <span class="text-xs font-medium text-gray-700">친구 공유</span>
+                    </button>
+                    <!-- URL 복사 -->
+                    <button onclick="copyUrl()" class="flex flex-col items-center gap-2 transition-transform active:scale-95">
+                        <div class="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-2xl text-gray-600 shadow-sm"><i class="fa-solid fa-link"></i></div>
+                        <span class="text-xs font-medium text-gray-700">URL 복사</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 관리자 비밀번호 입력 모달 -->
+        <div id="password-modal" class="hidden absolute inset-0 bg-black/60 z-50 flex justify-center items-center">
+            <div class="bg-white w-[80%] max-w-sm rounded-3xl p-6 flex flex-col scale-100 transition-transform">
+                <h3 class="text-lg font-bold mb-2">관리자 인증</h3>
+                <p class="text-sm text-gray-500 mb-4">비밀번호를 입력해주세요.</p>
+                <input type="password" id="admin-password-input" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-primary mb-2 text-center text-lg tracking-widest">
+                <p id="password-error" class="text-xs text-red-500 hidden mb-4">비밀번호가 일치하지 않습니다.</p>
+                <div class="flex gap-2 mt-2">
+                    <button onclick="closePasswordModal()" class="flex-1 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600 font-medium">취소</button>
+                    <button onclick="verifyPassword()" class="flex-1 bg-primary hover:bg-primary_dark text-white font-bold py-3 rounded-xl shadow-md">확인</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 커스텀 알림/확인 모달 -->
+        <div id="message-modal" class="hidden absolute inset-0 bg-black/60 z-50 flex justify-center items-center">
+            <div class="bg-white w-[80%] max-w-sm rounded-3xl p-6 flex flex-col text-center">
+                <div class="text-3xl text-primary mb-3"><i class="fa-solid fa-circle-exclamation"></i></div>
+                <p id="message-modal-text" class="text-gray-800 font-medium mb-6">메시지 내용</p>
+                <div id="message-modal-btn-container" class="flex gap-2">
+                    <!-- 버튼 동적 생성 -->
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- 작동을 위한 필수 자바스크립트 복구 -->
@@ -217,6 +270,37 @@
         let currentGender = null;
         let adminClickCount = 0;
         let adminClickTimer = null;
+        let pendingConfirmAction = null;
+
+        // 커스텀 알림 모달 닫기
+        function closeMessageModal() {
+            document.getElementById('message-modal').classList.add('hidden');
+        }
+
+        // 커스텀 알림(Alert) 띄우기
+        function showMessage(msg) {
+            document.getElementById('message-modal-text').innerText = msg;
+            const btnContainer = document.getElementById('message-modal-btn-container');
+            btnContainer.innerHTML = `<button onclick="closeMessageModal()" class="w-full bg-primary hover:bg-primary_dark text-white font-bold py-3 rounded-xl shadow-md transition-all">확인</button>`;
+            document.getElementById('message-modal').classList.remove('hidden');
+        }
+
+        // 커스텀 확인(Confirm) 띄우기
+        function showConfirm(msg, action) {
+            document.getElementById('message-modal-text').innerText = msg;
+            const btnContainer = document.getElementById('message-modal-btn-container');
+            btnContainer.innerHTML = `
+                <button onclick="closeMessageModal()" class="flex-1 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600 font-medium transition-all">취소</button>
+                <button onclick="executeConfirm()" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl shadow-md transition-all">확인</button>
+            `;
+            pendingConfirmAction = action;
+            document.getElementById('message-modal').classList.remove('hidden');
+        }
+        
+        function executeConfirm() {
+            if(pendingConfirmAction) pendingConfirmAction();
+            closeMessageModal();
+        }
 
         // 화면 전환 함수
         function showView(viewId) {
@@ -247,7 +331,7 @@
         // 권장 칼로리 계산 (온보딩 완료)
         function calculateProfile() {
             if(!currentGender) {
-                alert("성별을 선택해주세요.");
+                showMessage("성별을 선택해주세요.");
                 return;
             }
             // 기초적인 정보 수집 및 대시보드로 이동
@@ -265,8 +349,27 @@
             }, 2000);
             
             if(adminClickCount >= 5) {
-                showView('view-admin');
+                // 비밀번호 입력 모달 띄우기
+                document.getElementById('admin-password-input').value = '';
+                document.getElementById('password-error').classList.add('hidden');
+                document.getElementById('password-modal').classList.remove('hidden');
                 adminClickCount = 0; // 초기화
+            }
+        }
+
+        // 비밀번호 모달 닫기
+        function closePasswordModal() {
+            document.getElementById('password-modal').classList.add('hidden');
+        }
+
+        // 비밀번호 검증 (0319)
+        function verifyPassword() {
+            const pw = document.getElementById('admin-password-input').value;
+            if(pw === '0319') {
+                closePasswordModal();
+                showView('view-admin');
+            } else {
+                document.getElementById('password-error').classList.remove('hidden');
             }
         }
 
@@ -295,23 +398,62 @@
         }
 
         // 기타 더미 함수들
-        function shareApp() { alert("공유 기능이 준비 중입니다!"); }
+        function shareApp() { 
+            // 공유 모달창 열기
+            document.getElementById('share-modal').classList.remove('hidden');
+        }
+
+        function closeShareModal() {
+            document.getElementById('share-modal').classList.add('hidden');
+        }
+
+        // Web Share API를 이용한 네이티브 공유 (카카오톡 등 선택 가능)
+        function shareViaWebAPI() {
+            if (navigator.share) {
+                navigator.share({
+                    title: '찰칵 식단',
+                    text: '사진으로 쉽게 기록하는 스마트한 식단 관리, 찰칵 식단과 함께해요!',
+                    url: window.location.href,
+                }).catch((error) => console.log('공유 취소/실패:', error));
+            } else {
+                showMessage("현재 기기에서는 친구 공유를 지원하지 않습니다. URL 복사를 이용해주세요.");
+            }
+        }
+
+        // 클립보드 URL 복사
+        function copyUrl() {
+            const url = window.location.href;
+            const tempInput = document.createElement("input");
+            tempInput.value = url;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            
+            try {
+                document.execCommand("copy");
+                showMessage("URL이 클립보드에 복사되었습니다!");
+            } catch (err) {
+                showMessage("URL 복사에 실패했습니다.");
+            }
+            document.body.removeChild(tempInput);
+            closeShareModal();
+        }
+
         function resetApp() { 
-            if(confirm("모든 데이터를 초기화하시겠습니까?")) {
+            showConfirm("모든 데이터를 초기화하시겠습니까?", () => {
                 currentGender = null;
                 setGender(''); // UI 리셋
                 document.getElementById('input-age').value = '';
                 document.getElementById('input-height').value = '';
                 document.getElementById('input-weight').value = '';
                 showView('view-onboarding'); 
-            }
+            });
         }
         function changeDate(dir) { /* 날짜 변경 로직 */ }
         function startAnalysis() {
             // 여기에 백엔드(Vercel) /api/diet 를 호출하는 로직이 들어갑니다.
             document.getElementById('scan-line').classList.remove('hidden');
             document.getElementById('scan-line').style.animation = 'scan 2s infinite linear';
-            alert("Vercel 서버로 분석을 요청합니다. (이후 로직 연결 필요)");
+            showMessage("Vercel 서버로 분석을 요청합니다. (이후 로직 연결 필요)");
         }
     </script>
 </body>
