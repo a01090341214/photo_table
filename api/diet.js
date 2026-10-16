@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
     }
 
     // 변경점: 구글이 헷갈리지 않도록 명확한 세부 버전(-002) 하드코딩
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${apiKey}`;
 
     const payload = {
       contents: [{ role: "user", parts: [
