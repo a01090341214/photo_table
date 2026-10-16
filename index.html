@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>찰칵 식단 - 스마트 칼로리 계산기</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -157,15 +157,7 @@
                     </div>
                 </div>
             </div>
-            <div class="px-4 mb-4">
-                <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl shadow-sm flex gap-3">
-                    <div class="text-blue-500 text-2xl mt-1"><i class="fa-solid fa-comment-dots"></i></div>
-                    <div>
-                        <h3 class="font-bold text-blue-800 text-sm mb-2">찰칵 피드백</h3>
-                        <p id="ai-feedback-text" class="text-sm text-blue-700 leading-relaxed">아직 기록된 식단이 없습니다. 맛있는 음식 사진을 올려주시면 피드백을 드릴게요!</p>
-                    </div>
-                </div>
-            </div>
+            
             <div class="px-4 mb-4">
                 <button onclick="openUploadModal()" class="w-full bg-primary hover:bg-primary_dark text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex justify-center items-center gap-2 active:scale-95 text-lg">
                     <i class="fa-solid fa-camera"></i> 사진으로 식단 추가하기
@@ -175,6 +167,7 @@
                 <div class="flex justify-between items-end mb-3 ml-1">
                     <h3 class="font-bold text-gray-700" id="food-list-title">오늘 먹은 음식</h3>
                 </div>
+                <!-- 하루 등록한 사진이 하단에 차곡차곡 쌓이는 리스트 영역 -->
                 <div id="food-list" class="space-y-3">
                     <div id="empty-state" class="text-center py-10 bg-white rounded-2xl border border-gray-100 shadow-sm">
                         <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300 text-2xl">
@@ -186,24 +179,42 @@
             </div>
         </div>
 
-        <!-- 사진 업로드 모달 (끊겨있던 부분 복구) -->
+        <!-- 사진 업로드 모달 (카메라 & 갤러리 선택 완벽 복구) -->
         <div id="upload-modal" class="hidden absolute inset-0 bg-black/60 z-50 flex justify-center items-end sm:items-center">
-            <div class="bg-white w-full h-[80%] sm:h-auto sm:max-h-[80%] rounded-t-3xl sm:rounded-3xl p-6 flex flex-col animate-[translate-y_0.3s_ease-out]">
+            <div class="bg-white w-full h-[85%] sm:h-auto sm:max-h-[85%] rounded-t-3xl sm:rounded-3xl p-6 flex flex-col animate-[translate-y_0.3s_ease-out]">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-bold">음식 사진 분석</h3>
+                    <h3 class="text-xl font-bold">음식 사진 추가</h3>
                     <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
                 
-                <div class="flex-1 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col justify-center items-center bg-gray-50 relative overflow-hidden cursor-pointer hover:bg-gray-100 transition-colors" id="drop-zone" onclick="document.getElementById('file-input').click()">
-                    <div id="upload-placeholder" class="text-center">
-                        <i class="fa-solid fa-image text-4xl text-gray-300 mb-3"></i>
-                        <p class="text-sm font-medium text-gray-500">이곳을 눌러 사진을 선택하세요</p>
+                <!-- 숨겨진 파일 입력 (하나는 카메라 전용, 하나는 갤러리) -->
+                <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelect(event)">
+                <input type="file" id="gallery-input" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
+                
+                <!-- 메인 미리보기 및 스캔 영역 -->
+                <div class="flex-1 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col justify-center items-center bg-gray-50 relative overflow-hidden transition-colors" id="drop-zone">
+                    <div id="upload-placeholder" class="text-center flex flex-col items-center gap-4 w-full px-6">
+                        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-3xl text-gray-300 mb-2">
+                            <i class="fa-solid fa-image"></i>
+                        </div>
+                        
+                        <!-- 카메라 및 앨범 선택 버튼 복구 -->
+                        <div id="camera-gallery-btns" class="w-full flex gap-3">
+                            <button onclick="document.getElementById('camera-input').click()" class="flex-1 bg-white border border-gray-200 py-4 rounded-xl shadow-sm hover:bg-gray-50 text-gray-700 font-bold flex flex-col items-center gap-2 transition-all active:scale-95">
+                                <i class="fa-solid fa-camera text-2xl text-primary"></i>
+                                <span>카메라 촬영</span>
+                            </button>
+                            <button onclick="document.getElementById('gallery-input').click()" class="flex-1 bg-white border border-gray-200 py-4 rounded-xl shadow-sm hover:bg-gray-50 text-gray-700 font-bold flex flex-col items-center gap-2 transition-all active:scale-95">
+                                <i class="fa-solid fa-images text-2xl text-blue-500"></i>
+                                <span>앨범 선택</span>
+                            </button>
+                        </div>
                     </div>
+                    
                     <img id="image-preview" class="hidden absolute inset-0 w-full h-full object-cover">
                     <!-- 스캔 애니메이션 효과 -->
-                    <div id="scan-line" class="hidden absolute w-full h-2 bg-primary/50 blur-sm top-0 left-0"></div>
+                    <div id="scan-line" class="hidden absolute w-full h-4 bg-gradient-to-b from-primary/60 to-transparent blur-sm top-0 left-0"></div>
                 </div>
-                <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
                 
                 <button id="btn-analyze" onclick="startAnalysis()" class="hidden w-full bg-primary hover:bg-primary_dark text-white font-bold py-4 rounded-xl shadow-lg transition-all mt-6 active:scale-95 flex justify-center items-center gap-2">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> AI 분석 시작하기
@@ -219,17 +230,14 @@
                     <button onclick="closeShareModal()" class="text-gray-400 hover:text-gray-600 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
                 <div class="grid grid-cols-3 gap-4 text-center">
-                    <!-- 카카오 채널 추가 -->
                     <a href="http://pf.kakao.com/_kSxbnK" target="_blank" class="flex flex-col items-center gap-2 transition-transform active:scale-95">
                         <div class="w-14 h-14 bg-[#FEE500] rounded-full flex items-center justify-center text-2xl text-[#391B1B] shadow-sm"><i class="fa-solid fa-comment"></i></div>
                         <span class="text-xs font-medium text-gray-700">카카오 채널</span>
                     </a>
-                    <!-- 카카오톡 친구 공유 (Web Share API) -->
                     <button onclick="shareViaWebAPI()" class="flex flex-col items-center gap-2 transition-transform active:scale-95">
                         <div class="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center text-2xl text-white shadow-sm"><i class="fa-solid fa-share-nodes"></i></div>
                         <span class="text-xs font-medium text-gray-700">친구 공유</span>
                     </button>
-                    <!-- URL 복사 -->
                     <button onclick="copyUrl()" class="flex flex-col items-center gap-2 transition-transform active:scale-95">
                         <div class="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-2xl text-gray-600 shadow-sm"><i class="fa-solid fa-link"></i></div>
                         <span class="text-xs font-medium text-gray-700">URL 복사</span>
@@ -243,7 +251,7 @@
             <div class="bg-white w-[80%] max-w-sm rounded-3xl p-6 flex flex-col scale-100 transition-transform">
                 <h3 class="text-lg font-bold mb-2">관리자 인증</h3>
                 <p class="text-sm text-gray-500 mb-4">비밀번호를 입력해주세요.</p>
-                <input type="password" id="admin-password-input" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-primary mb-2 text-center text-lg tracking-widest">
+                <input type="password" id="admin-password-input" placeholder="****" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-primary mb-2 text-center text-lg tracking-widest">
                 <p id="password-error" class="text-xs text-red-500 hidden mb-4">비밀번호가 일치하지 않습니다.</p>
                 <div class="flex gap-2 mt-2">
                     <button onclick="closePasswordModal()" class="flex-1 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600 font-medium">취소</button>
@@ -265,19 +273,18 @@
 
     </div>
 
-    <!-- 작동을 위한 필수 자바스크립트 복구 -->
     <script>
         let currentGender = null;
         let adminClickCount = 0;
         let adminClickTimer = null;
         let pendingConfirmAction = null;
+        let compressedImageBase64 = null; // 압축된 이미지 저장용 변수
 
-        // 커스텀 알림 모달 닫기
+        // ---------------- 커스텀 모달 UI 로직 ----------------
         function closeMessageModal() {
             document.getElementById('message-modal').classList.add('hidden');
         }
 
-        // 커스텀 알림(Alert) 띄우기
         function showMessage(msg) {
             document.getElementById('message-modal-text').innerText = msg;
             const btnContainer = document.getElementById('message-modal-btn-container');
@@ -285,7 +292,6 @@
             document.getElementById('message-modal').classList.remove('hidden');
         }
 
-        // 커스텀 확인(Confirm) 띄우기
         function showConfirm(msg, action) {
             document.getElementById('message-modal-text').innerText = msg;
             const btnContainer = document.getElementById('message-modal-btn-container');
@@ -302,7 +308,6 @@
             closeMessageModal();
         }
 
-        // 화면 전환 함수
         function showView(viewId) {
             document.getElementById('view-onboarding').classList.add('hidden');
             document.getElementById('view-dashboard').classList.add('hidden');
@@ -310,17 +315,15 @@
             document.getElementById(viewId).classList.remove('hidden');
         }
 
-        // 성별 버튼 클릭 로직
+        // ---------------- 온보딩 로직 ----------------
         function setGender(gender) {
             currentGender = gender;
             const btnM = document.getElementById('btn-gender-m');
             const btnF = document.getElementById('btn-gender-f');
             
-            // 초기화
             btnM.classList.remove('ring-2', 'ring-primary', 'text-primary', 'bg-green-50');
             btnF.classList.remove('ring-2', 'ring-primary', 'text-primary', 'bg-green-50');
             
-            // 선택된 버튼 하이라이트
             if(gender === 'M') {
                 btnM.classList.add('ring-2', 'ring-primary', 'text-primary', 'bg-green-50');
             } else {
@@ -328,41 +331,36 @@
             }
         }
 
-        // 권장 칼로리 계산 (온보딩 완료)
         function calculateProfile() {
             if(!currentGender) {
                 showMessage("성별을 선택해주세요.");
                 return;
             }
-            // 기초적인 정보 수집 및 대시보드로 이동
+            // 기본적인 권장 칼로리 계산 로직 및 대시보드로 이동
             showView('view-dashboard');
         }
 
-        // 관리자 모드 숨겨진 진입 로직 (타이틀 5번 연속 클릭)
+        // ---------------- 관리자 기능 로직 ----------------
         function handleAdminClick() {
             adminClickCount++;
             clearTimeout(adminClickTimer);
             
-            // 2초 내에 다시 안 누르면 카운트 초기화
             adminClickTimer = setTimeout(() => {
                 adminClickCount = 0;
             }, 2000);
             
             if(adminClickCount >= 5) {
-                // 비밀번호 입력 모달 띄우기
                 document.getElementById('admin-password-input').value = '';
                 document.getElementById('password-error').classList.add('hidden');
                 document.getElementById('password-modal').classList.remove('hidden');
-                adminClickCount = 0; // 초기화
+                adminClickCount = 0; 
             }
         }
 
-        // 비밀번호 모달 닫기
         function closePasswordModal() {
             document.getElementById('password-modal').classList.add('hidden');
         }
 
-        // 비밀번호 검증 (0319)
         function verifyPassword() {
             const pw = document.getElementById('admin-password-input').value;
             if(pw === '0319') {
@@ -373,41 +371,13 @@
             }
         }
 
-        // 모달창 끄고 켜기
-        function openUploadModal() {
-            document.getElementById('upload-modal').classList.remove('hidden');
-        }
-        function closeUploadModal() {
-            document.getElementById('upload-modal').classList.add('hidden');
-        }
-
-        // 이미지 선택 미리보기 (디자인 복구)
-        function handleImageSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('upload-placeholder').classList.add('hidden');
-                    const imgPreview = document.getElementById('image-preview');
-                    imgPreview.src = e.target.result;
-                    imgPreview.classList.remove('hidden');
-                    document.getElementById('btn-analyze').classList.remove('hidden');
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // 기타 더미 함수들
+        // ---------------- 공유 로직 ----------------
         function shareApp() { 
-            // 공유 모달창 열기
             document.getElementById('share-modal').classList.remove('hidden');
         }
-
         function closeShareModal() {
             document.getElementById('share-modal').classList.add('hidden');
         }
-
-        // Web Share API를 이용한 네이티브 공유 (카카오톡 등 선택 가능)
         function shareViaWebAPI() {
             if (navigator.share) {
                 navigator.share({
@@ -419,15 +389,12 @@
                 showMessage("현재 기기에서는 친구 공유를 지원하지 않습니다. URL 복사를 이용해주세요.");
             }
         }
-
-        // 클립보드 URL 복사
         function copyUrl() {
             const url = window.location.href;
             const tempInput = document.createElement("input");
             tempInput.value = url;
             document.body.appendChild(tempInput);
             tempInput.select();
-            
             try {
                 document.execCommand("copy");
                 showMessage("URL이 클립보드에 복사되었습니다!");
@@ -441,22 +408,85 @@
         function resetApp() { 
             showConfirm("모든 데이터를 초기화하시겠습니까?", () => {
                 currentGender = null;
-                setGender(''); // UI 리셋
+                setGender(''); 
                 document.getElementById('input-age').value = '';
                 document.getElementById('input-height').value = '';
                 document.getElementById('input-weight').value = '';
+                
+                // 데이터 리셋
+                document.getElementById('display-consumed').innerText = '0';
+                document.getElementById('food-list').innerHTML = `
+                    <div id="empty-state" class="text-center py-10 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300 text-2xl">
+                            <i class="fa-solid fa-utensils"></i>
+                        </div>
+                        <p class="text-gray-400 text-sm">아직 기록된 식단이 없습니다.<br>사진을 찍어 기록해보세요!</p>
+                    </div>`;
+                updateProgressUI();
                 showView('view-onboarding'); 
             });
         }
-        function changeDate(dir) { /* 날짜 변경 로직 */ }
+        function changeDate(dir) { /* 날짜 변경 로직 (더미) */ }
+
+        // ---------------- 사진 업로드 & 캔버스 압축 최적화 로직 ----------------
+        function openUploadModal() {
+            // 모달 열 때 UI 초기화
+            document.getElementById('upload-placeholder').classList.remove('hidden');
+            document.getElementById('camera-gallery-btns').classList.remove('hidden');
+            document.getElementById('image-preview').classList.add('hidden');
+            document.getElementById('btn-analyze').classList.add('hidden');
+            document.getElementById('camera-input').value = "";
+            document.getElementById('gallery-input').value = "";
+            compressedImageBase64 = null;
+            document.getElementById('upload-modal').classList.remove('hidden');
+        }
         
-        // 🚨 제가 실수로 지웠던 핵심 API 통신 코드를 완벽하게 복구했습니다!
+        function closeUploadModal() {
+            document.getElementById('upload-modal').classList.add('hidden');
+        }
+
+        // 카메라로 찍은 10MB짜리 사진을 그대로 API로 보내면 서버가 죽습니다. 캔버스로 리사이징/압축 필수!
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // 최대 가로 넓이 800px로 제한하여 압축
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; 
+                    let scaleSize = 1;
+                    if(img.width > MAX_WIDTH) {
+                        scaleSize = MAX_WIDTH / img.width;
+                    }
+                    
+                    canvas.width = img.width * scaleSize;
+                    canvas.height = img.height * scaleSize;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // 화질 80% 의 JPEG 포맷 Base64로 추출 (API 전송용)
+                    compressedImageBase64 = canvas.toDataURL('image/jpeg', 0.8); 
+
+                    // UI 업데이트
+                    document.getElementById('upload-placeholder').classList.add('hidden');
+                    const imgPreview = document.getElementById('image-preview');
+                    imgPreview.src = compressedImageBase64;
+                    imgPreview.classList.remove('hidden');
+                    document.getElementById('btn-analyze').classList.remove('hidden');
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // ---------------- Vercel API 분석 및 UI 렌더링 로직 ----------------
         async function startAnalysis() {
-            const imgPreview = document.getElementById('image-preview');
-            const base64Image = imgPreview.src;
-            
-            if (!base64Image || base64Image.includes('hidden')) {
-                showMessage("이미지를 선택해주세요.");
+            if (!compressedImageBase64) {
+                showMessage("이미지를 올바르게 불러오지 못했습니다. 다시 선택해주세요.");
                 return;
             }
 
@@ -469,24 +499,24 @@
             analyzeBtn.disabled = true;
 
             try {
-                // 선생님께서 고생해서 고치셨던 Vercel 백엔드(/api/diet)로 이미지 전송!
+                // 수정 완료된 Vercel 백엔드로 압축된 이미지 전송
                 const response = await fetch('/api/diet', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: base64Image })
+                    body: JSON.stringify({ image: compressedImageBase64 })
                 });
 
                 const result = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(result.error || "서버 에러");
+                    throw new Error(result.error || "서버 에러가 발생했습니다.");
                 }
 
-                // 분석 성공 시 화면에 음식 카드 추가
+                // 분석 성공 시 하단 리스트에 예쁜 카드 추가!
                 if (result.success && result.data) {
-                    addFoodToList(result.data, base64Image);
+                    addFoodToList(result.data, compressedImageBase64);
                     closeUploadModal();
-                    showMessage(`${result.data.name} 분석이 완료되었습니다!`);
+                    showMessage(`[${result.data.name}] 식단이 성공적으로 기록되었습니다!`);
                 } else {
                     throw new Error("분석 결과를 찾을 수 없습니다.");
                 }
@@ -495,44 +525,47 @@
                 console.error(error);
                 showMessage("AI 분석 에러: " + error.message);
             } finally {
-                // 로딩 애니메이션 끄기
+                // 로딩 종료
                 document.getElementById('scan-line').classList.add('hidden');
                 analyzeBtn.innerHTML = originalBtnText;
                 analyzeBtn.disabled = false;
             }
         }
 
-        // 분석된 결과(칼로리, 영양소)를 화면에 예쁘게 그려주는 함수
+        // 분석된 결과를 대시보드 하단에 쌓아주는 핵심 로직 복구
         function addFoodToList(data, imgSrc) {
             const foodList = document.getElementById('food-list');
             const emptyState = document.getElementById('empty-state');
-            if(emptyState) emptyState.remove(); // '아직 기록된 식단이 없습니다' 문구 제거
+            if(emptyState) emptyState.remove(); // 처음 기록할 때 비어있음 안내문 제거
 
             const foodCard = document.createElement('div');
             foodCard.className = 'bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex gap-4 fade-enter fade-enter-active';
             foodCard.innerHTML = `
-                <img src="${imgSrc}" class="w-20 h-20 object-cover rounded-xl border border-gray-100">
-                <div class="flex-1">
-                    <div class="flex justify-between items-start mb-1">
-                        <h4 class="font-bold text-gray-800">${data.name}</h4>
-                        <span class="text-[10px] font-bold text-primary bg-green-50 px-2 py-1 rounded-full border border-green-100">
-                            <i class="fa-solid fa-check"></i> AI 분석
-                        </span>
+                <img src="${imgSrc}" class="w-24 h-24 object-cover rounded-xl border border-gray-100 shadow-sm">
+                <div class="flex-1 flex flex-col justify-between py-0.5">
+                    <div>
+                        <div class="flex justify-between items-start mb-1">
+                            <h4 class="font-bold text-gray-800 text-sm">${data.name}</h4>
+                            <span class="text-[10px] font-bold text-primary bg-green-50 px-2 py-1 rounded-full border border-green-100 whitespace-nowrap">
+                                <i class="fa-solid fa-check"></i> AI 완료
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 mb-2 line-clamp-2 leading-relaxed">${data.desc}</p>
                     </div>
-                    <p class="text-xs text-gray-500 mb-2 line-clamp-1">${data.desc}</p>
                     <div class="flex justify-between items-end">
-                        <p class="text-lg font-black text-gray-800">${data.baseKcal} <span class="text-xs font-medium text-gray-400">kcal</span></p>
-                        <div class="flex gap-1">
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-orange-600">탄 ${data.carbs}g</span>
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">단 ${data.protein}g</span>
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-50 text-red-600">지 ${data.fat}g</span>
+                        <p class="text-xl font-black text-gray-800 tracking-tight">${data.baseKcal} <span class="text-xs font-medium text-gray-400">kcal</span></p>
+                        <div class="flex gap-1.5">
+                            <span class="text-[10px] font-bold px-1.5 py-1 rounded-md bg-orange-50 text-orange-600">탄 ${data.carbs}g</span>
+                            <span class="text-[10px] font-bold px-1.5 py-1 rounded-md bg-blue-50 text-blue-600">단 ${data.protein}g</span>
+                            <span class="text-[10px] font-bold px-1.5 py-1 rounded-md bg-red-50 text-red-600">지 ${data.fat}g</span>
                         </div>
                     </div>
                 </div>
             `;
+            // 새로 올린 사진이 가장 위(최상단)에 쌓이도록 prepend 사용
             foodList.prepend(foodCard);
 
-            // 중앙의 섭취한 칼로리 원형 그래프 업데이트
+            // 중앙 원형 그래프 칼로리 합산 업데이트
             const consumedEl = document.getElementById('display-consumed');
             let currentKcal = parseInt(consumedEl.innerText) || 0;
             consumedEl.innerText = currentKcal + data.baseKcal;
@@ -540,6 +573,7 @@
             updateProgressUI();
         }
 
+        // 칼로리 그래프 업데이트 로직
         function updateProgressUI() {
             const consumed = parseInt(document.getElementById('display-consumed').innerText) || 0;
             const goal = parseInt(document.getElementById('display-goal').innerText) || 2000;
@@ -547,12 +581,17 @@
             
             document.getElementById('display-remaining').innerText = remaining > 0 ? remaining : Math.abs(remaining);
             
-            // 칼로리 초과 시 빨간색 경고 효과
+            // 칼로리 초과 시 빨간색 경고 디자인
             if(remaining < 0) {
                 document.getElementById('overflow-badge').classList.remove('hidden');
                 document.getElementById('summary-card').classList.add('overflow-alert-card');
                 document.getElementById('remaining-label').innerText = "초과 칼로리";
                 document.getElementById('display-remaining').classList.replace('text-blue-500', 'text-red-500');
+            } else {
+                document.getElementById('overflow-badge').classList.add('hidden');
+                document.getElementById('summary-card').classList.remove('overflow-alert-card');
+                document.getElementById('remaining-label').innerText = "남은 칼로리";
+                document.getElementById('display-remaining').classList.replace('text-red-500', 'text-blue-500');
             }
 
             let percent = Math.min(Math.round((consumed / goal) * 100), 100);
