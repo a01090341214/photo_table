@@ -75,6 +75,7 @@
             </div>
         </div>
 
+        <!-- 온보딩(정보 입력) 화면 -->
         <div id="view-onboarding" class="flex-1 overflow-y-auto p-6 bg-white flex flex-col transition-all duration-300">
             <h2 class="text-2xl font-bold mb-2">당신을 알려주세요 👋</h2>
             <p class="text-gray-500 mb-6 text-sm">정확한 하루 권장 칼로리 계산을 위해 한 번만 입력하시면 됩니다.</p>
@@ -117,6 +118,7 @@
             </div>
         </div>
 
+        <!-- 메인 대시보드 화면 -->
         <div id="view-dashboard" class="hidden flex-1 overflow-y-auto bg-gray-50 flex flex-col relative pb-6">
             <div id="summary-card" class="bg-white p-6 rounded-b-3xl shadow-sm mb-4 transition-all duration-300 border-b-2 border-transparent">
                 <div class="flex justify-between items-center mb-6">
@@ -184,4 +186,133 @@
             </div>
         </div>
 
-        <div id="upload-modal" class
+        <!-- 사진 업로드 모달 (끊겨있던 부분 복구) -->
+        <div id="upload-modal" class="hidden absolute inset-0 bg-black/60 z-50 flex justify-center items-end sm:items-center">
+            <div class="bg-white w-full h-[80%] sm:h-auto sm:max-h-[80%] rounded-t-3xl sm:rounded-3xl p-6 flex flex-col animate-[translate-y_0.3s_ease-out]">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold">음식 사진 분석</h3>
+                    <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                
+                <div class="flex-1 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col justify-center items-center bg-gray-50 relative overflow-hidden cursor-pointer hover:bg-gray-100 transition-colors" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                    <div id="upload-placeholder" class="text-center">
+                        <i class="fa-solid fa-image text-4xl text-gray-300 mb-3"></i>
+                        <p class="text-sm font-medium text-gray-500">이곳을 눌러 사진을 선택하세요</p>
+                    </div>
+                    <img id="image-preview" class="hidden absolute inset-0 w-full h-full object-cover">
+                    <!-- 스캔 애니메이션 효과 -->
+                    <div id="scan-line" class="hidden absolute w-full h-2 bg-primary/50 blur-sm top-0 left-0"></div>
+                </div>
+                <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
+                
+                <button id="btn-analyze" onclick="startAnalysis()" class="hidden w-full bg-primary hover:bg-primary_dark text-white font-bold py-4 rounded-xl shadow-lg transition-all mt-6 active:scale-95 flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> AI 분석 시작하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 작동을 위한 필수 자바스크립트 복구 -->
+    <script>
+        let currentGender = null;
+        let adminClickCount = 0;
+        let adminClickTimer = null;
+
+        // 화면 전환 함수
+        function showView(viewId) {
+            document.getElementById('view-onboarding').classList.add('hidden');
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        // 성별 버튼 클릭 로직
+        function setGender(gender) {
+            currentGender = gender;
+            const btnM = document.getElementById('btn-gender-m');
+            const btnF = document.getElementById('btn-gender-f');
+            
+            // 초기화
+            btnM.classList.remove('ring-2', 'ring-primary', 'text-primary', 'bg-green-50');
+            btnF.classList.remove('ring-2', 'ring-primary', 'text-primary', 'bg-green-50');
+            
+            // 선택된 버튼 하이라이트
+            if(gender === 'M') {
+                btnM.classList.add('ring-2', 'ring-primary', 'text-primary', 'bg-green-50');
+            } else {
+                btnF.classList.add('ring-2', 'ring-primary', 'text-primary', 'bg-green-50');
+            }
+        }
+
+        // 권장 칼로리 계산 (온보딩 완료)
+        function calculateProfile() {
+            if(!currentGender) {
+                alert("성별을 선택해주세요.");
+                return;
+            }
+            // 기초적인 정보 수집 및 대시보드로 이동
+            showView('view-dashboard');
+        }
+
+        // 관리자 모드 숨겨진 진입 로직 (타이틀 5번 연속 클릭)
+        function handleAdminClick() {
+            adminClickCount++;
+            clearTimeout(adminClickTimer);
+            
+            // 2초 내에 다시 안 누르면 카운트 초기화
+            adminClickTimer = setTimeout(() => {
+                adminClickCount = 0;
+            }, 2000);
+            
+            if(adminClickCount >= 5) {
+                showView('view-admin');
+                adminClickCount = 0; // 초기화
+            }
+        }
+
+        // 모달창 끄고 켜기
+        function openUploadModal() {
+            document.getElementById('upload-modal').classList.remove('hidden');
+        }
+        function closeUploadModal() {
+            document.getElementById('upload-modal').classList.add('hidden');
+        }
+
+        // 이미지 선택 미리보기 (디자인 복구)
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('upload-placeholder').classList.add('hidden');
+                    const imgPreview = document.getElementById('image-preview');
+                    imgPreview.src = e.target.result;
+                    imgPreview.classList.remove('hidden');
+                    document.getElementById('btn-analyze').classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 기타 더미 함수들
+        function shareApp() { alert("공유 기능이 준비 중입니다!"); }
+        function resetApp() { 
+            if(confirm("모든 데이터를 초기화하시겠습니까?")) {
+                currentGender = null;
+                setGender(''); // UI 리셋
+                document.getElementById('input-age').value = '';
+                document.getElementById('input-height').value = '';
+                document.getElementById('input-weight').value = '';
+                showView('view-onboarding'); 
+            }
+        }
+        function changeDate(dir) { /* 날짜 변경 로직 */ }
+        function startAnalysis() {
+            // 여기에 백엔드(Vercel) /api/diet 를 호출하는 로직이 들어갑니다.
+            document.getElementById('scan-line').classList.remove('hidden');
+            document.getElementById('scan-line').style.animation = 'scan 2s infinite linear';
+            alert("Vercel 서버로 분석을 요청합니다. (이후 로직 연결 필요)");
+        }
+    </script>
+</body>
+</html>
