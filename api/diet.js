@@ -1,32 +1,31 @@
-module.exports = async function handler(req, res) {
-  // CORS 헤더 설정
+export default async function handler(req, res) {
+  // 1. CORS 설정 (프론트엔드와 백엔드 통신 허용)
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // 사전 요청 처리
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
+  // 2. 프론트엔드(index.html)에서 보낸 POST 요청만 받음
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST 요청만 지원합니다." });
   }
 
   try {
     const { image } = req.body;
-
     if (!image) {
-      return res.status(400).json({ error: "이미지 데이터가 없습니다." });
+      return res.status(400).json({ error: "이미지 데이터가 전달되지 않았습니다." });
     }
 
-    // Vercel 환경변수에서 키를 읽어옵니다.
+    // 3. Vercel 환경변수에서 구글 API 키 확인
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: "서버에 GEMINI_API_KEY가 설정되지 않았습니다." });
+      return res.status(500).json({ error: "Vercel 서버에 GEMINI_API_KEY가 등록되지 않았습니다." });
     }
 
-    // Base64 포맷 정제
+    // 4. 이미지 Base64 데이터 정제
     let cleanBase64 = image;
     let mimeType = "image/jpeg";
     if (cleanBase64.includes(",")) {
@@ -36,23 +35,15 @@ module.exports = async function handler(req, res) {
       cleanBase64 = parts[1];
     }
 
-    // Gemini 1.5 모델 주소
+    // 5. 구글 Gemini API 호출
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-    const systemInstruction =
-      "당신은 대한민국 최고의 임상영양사입니다. 제공된 사진 속 요리나 음식을 감별하고 현실적인 영양 정보를 분석하세요. " +
-      "반드시 지정된 JSON 규격에 맞춰 한국어로 답변해야 합니다.";
-
-    const userPrompt =
-      "이 사진에 나온 주요 음식을 인식하고, 1인분 기준 추정 칼로리와 설명, 주요 영양소(탄수화물, 단백질, 지방)를 산출해 주세요. " +
-      "음식이 아니거나 식별이 불가능한 경우에도 name을 '식별 불가 음식'으로 표기하고 적절한 안내 메시지를 포함해 규격대로 반환하세요.";
-
+    
     const payload = {
       contents: [
         {
           role: "user",
           parts: [
-            { text: userPrompt },
+            { text: "이 사진에 나온 주요 음식을 인식하고, 1인분 기준 추정 칼로리와 설명, 주요 영양소(탄수화물, 단백질, 지방)를 산출해 주세요. 음식이 아니거나 식별 불가능한 경우에도 적절한 안내 메시지를 포함해 규격대로 반환하세요." },
             {
               inlineData: {
                 mimeType: mimeType,
@@ -63,19 +54,19 @@ module.exports = async function handler(req, res) {
         },
       ],
       systemInstruction: {
-        parts: [{ text: systemInstruction }],
+        parts: [{ text: "당신은 대한민국 최고의 임상영양사입니다. 반드시 지정된 JSON 규격에 맞춰 한국어로 답변해야 합니다." }],
       },
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: {
           type: "OBJECT",
           properties: {
-            name: { type: "STRING", description: "식별된 한국어 대표 요리명 (예: 함박스테이크, 고구마)" },
-            desc: { type: "STRING", description: "추정 분량 및 설명" },
-            baseKcal: { type: "INTEGER", description: "1인분 기준 추정 총 칼로리(kcal, 정수)" },
-            carbs: { type: "INTEGER", description: "탄수화물 g (정수)" },
-            protein: { type: "INTEGER", description: "단백질 g (정수)" },
-            fat: { type: "INTEGER", description: "지방 g (정수)" },
+            name: { type: "STRING" },
+            desc: { type: "STRING" },
+            baseKcal: { type: "INTEGER" },
+            carbs: { type: "INTEGER" },
+            protein: { type: "INTEGER" },
+            fat: { type: "INTEGER" }
           },
           required: ["name", "desc", "baseKcal", "carbs", "protein", "fat"],
         },
@@ -90,19 +81,21 @@ module.exports = async function handler(req, res) {
 
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
-      return res.status(geminiResponse.status).json({ error: "Gemini API 호출 실패", details: errorText });
+      return res.status(geminiResponse.status).json({ error: "Gemini 서버 응답 오류", details: errorText });
     }
 
     const geminiResult = await geminiResponse.json();
     const contentPart = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!contentPart) {
-      return res.status(500).json({ error: "AI로부터 응답을 받지 못했습니다." });
+      return res.status(500).json({ error: "AI 분석 결과를 읽을 수 없습니다." });
     }
 
+    // 6. 성공 시 프론트엔드로 데이터 반환
     const parsedData = JSON.parse(contentPart);
     return res.status(200).json({ success: true, data: parsedData });
+    
   } catch (err) {
-    return res.status(500).json({ error: "서버 내부 오류", message: err.message });
+    return res.status(500).json({ error: "Vercel 백엔드 내부 오류", message: err.message });
   }
-};
+}
