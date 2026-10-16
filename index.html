@@ -1,56 +1,451 @@
-<!-- ... existing code ... -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                    <p class="text-sm font-medium text-gray-500 mb-1">이번 달 총 업로드 횟수</p>
-                    <p class="text-4xl font-black text-gray-800" id="admin-month-count">0 <span class="text-lg font-bold text-gray-400">회</span></p>
-                </div>
-                
-                <!-- 추가된 부분: 전체 누적 업로드 횟수 디자인 -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                    <p class="text-sm font-medium text-gray-500 mb-1">전체 누적 업로드 횟수</p>
-                    <p class="text-4xl font-black text-primary" id="admin-total-count">0 <span class="text-lg font-bold text-primary/50">회</span></p>
-                </div>
-                <!-- 추가 끝 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>찰칵 식단 - 스마트 칼로리 계산기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Noto Sans KR"', 'sans-serif'] },
+                    colors: { primary: '#10B981', primary_dark: '#059669' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f3f4f6; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .fade-enter { opacity: 0; transform: translateY(10px); }
+        .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
+        .progress-ring__circle { transition: stroke-dashoffset 0.5s ease-in-out, stroke 0.3s ease; transform: rotate(-90deg); transform-origin: 50% 50%; }
+        @keyframes pulse-danger { 0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } }
+        .overflow-alert-card { animation: pulse-danger 2s infinite ease-in-out; border-color: #f87171 !important; }
+        @keyframes scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+    </style>
+</head>
+<body class="text-gray-800 antialiased h-screen flex justify-center items-center overflow-hidden">
+    <div class="w-full max-w-md h-full sm:h-[850px] bg-white sm:rounded-[2.5rem] sm:border-[8px] border-gray-800 shadow-2xl relative overflow-hidden flex flex-col">
+        
+        <header class="pt-12 pb-4 px-6 bg-white z-10 shadow-sm flex justify-between items-center">
+            <h1 onclick="handleAdminClick()" class="text-xl font-bold text-gray-800 flex items-center gap-2 cursor-pointer select-none" style="-webkit-tap-highlight-color: transparent;">
+                <i class="fa-solid fa-leaf text-primary"></i> 찰칵 식단
+            </h1>
+            <div class="flex items-center gap-4">
+                <button onclick="shareApp()" class="text-primary hover:text-primary_dark text-sm font-bold flex items-center gap-1 transition-colors">
+                    <i class="fa-solid fa-share-nodes"></i> 공유
+                </button>
+                <button onclick="resetApp()" class="text-gray-400 hover:text-gray-600 text-sm flex items-center gap-1 transition-colors">
+                    <i class="fa-solid fa-gear"></i> 초기화
+                </button>
             </div>
+        </header>
 
-            <div class="mt-auto pt-6 text-center text-xs text-gray-400 leading-relaxed">
-<!-- ... existing code ... -->
-        // 화면 전환 함수
-        function showView(viewId) {
-            document.getElementById('view-onboarding').classList.add('hidden');
-            document.getElementById('view-dashboard').classList.add('hidden');
-            document.getElementById('view-analysis').classList.add('hidden');
-            document.getElementById('view-admin').classList.add('hidden');
-            const target = document.getElementById(viewId);
-            target.classList.remove('hidden');
-            target.classList.add('fade-enter', 'fade-enter-active');
-            setTimeout(() => target.classList.remove('fade-enter', 'fade-enter-active'), 300);
+        <div id="view-admin" class="hidden flex-1 overflow-y-auto p-6 bg-gray-50 flex flex-col transition-all duration-300 relative z-20">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-lock text-primary"></i> 관리자 페이지
+                </h2>
+                <button onclick="showView('view-dashboard')" class="text-gray-400 hover:text-gray-600 p-2 text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <p class="text-sm font-medium text-gray-500 mb-1">금일 이미지 업로드 횟수</p>
+                    <p class="text-4xl font-black text-gray-800" id="admin-today-count">0 <span class="text-lg font-bold text-gray-400">회</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-onboarding" class="flex-1 overflow-y-auto p-6 bg-white flex flex-col transition-all duration-300">
+            <h2 class="text-2xl font-bold mb-2">당신을 알려주세요 👋</h2>
+            <p class="text-gray-500 mb-6 text-sm">정확한 하루 권장 칼로리 계산을 위해 한 번만 입력하시면 됩니다.</p>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">성별</label>
+                    <div class="flex gap-2">
+                        <button type="button" id="btn-gender-m" onclick="setGender('M')" class="flex-1 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600 font-medium transition-colors">남성</button>
+                        <button type="button" id="btn-gender-f" onclick="setGender('F')" class="flex-1 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600 font-medium transition-colors">여성</button>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">나이</label>
+                        <input type="number" id="input-age" placeholder="예: 28" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">키 (cm)</label>
+                        <input type="number" id="input-height" placeholder="예: 175" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">몸무게 (kg)</label>
+                        <input type="number" id="input-weight" placeholder="예: 70" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">활동량</label>
+                    <select id="input-activity" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-primary bg-white">
+                        <option value="1.2">거의 운동하지 않음 (사무직)</option>
+                        <option value="1.375">가벼운 활동 (주 1~3일 운동)</option>
+                        <option value="1.55" selected>보통 활동 (주 3~5일 운동)</option>
+                        <option value="1.725">적극적 활동 (주 6~7일 운동)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-auto pt-6 pb-4">
+                <button onclick="calculateProfile()" class="w-full bg-primary hover:bg-primary_dark text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95">내 권장 칼로리 확인하기</button>
+            </div>
+        </div>
+
+        <div id="view-dashboard" class="hidden flex-1 overflow-y-auto bg-gray-50 flex flex-col relative pb-6">
+            <div id="summary-card" class="bg-white p-6 rounded-b-3xl shadow-sm mb-4 transition-all duration-300 border-b-2 border-transparent">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-lg font-bold">식단 요약</h2>
+                        <span id="overflow-badge" class="hidden px-2 py-0.5 text-xs font-bold bg-red-100 text-red-600 rounded-full flex items-center gap-1 animate-pulse">
+                            <i class="fa-solid fa-triangle-exclamation"></i> 초과
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-3 bg-gray-100 rounded-full px-3 py-1">
+                        <button onclick="changeDate(-1)" class="text-gray-400 p-1"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                        <span class="text-xs font-bold text-gray-700 min-w-[50px] text-center" id="display-date">오늘</span>
+                        <button onclick="changeDate(1)" class="text-gray-400 p-1"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                    </div>
+                </div>
+                <div class="relative flex justify-center items-center mb-6">
+                    <svg class="w-48 h-48" viewBox="0 0 120 120">
+                        <circle class="text-gray-200 stroke-current" stroke-width="10" cx="60" cy="60" r="50" fill="transparent"></circle>
+                        <circle id="progress-circle" class="text-primary stroke-current progress-ring__circle" stroke-width="10" stroke-linecap="round" cx="60" cy="60" r="50" fill="transparent" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
+                    </svg>
+                    <div class="absolute flex flex-col items-center justify-center text-center">
+                        <span class="text-gray-500 text-xs font-medium mb-1">섭취한 칼로리</span>
+                        <span class="text-3xl font-black text-gray-800 transition-colors duration-300" id="display-consumed">0</span>
+                        <span class="text-gray-400 text-xs font-medium mt-1">/ <span id="display-goal">2000</span> kcal</span>
+                    </div>
+                </div>
+                <div class="flex justify-around text-center border-t border-gray-100 pt-4">
+                    <div>
+                        <p class="text-xs text-gray-400 font-medium mb-1" id="remaining-label">남은 칼로리</p>
+                        <p class="text-lg font-bold text-blue-500" id="display-remaining">2000</p>
+                    </div>
+                    <div class="w-px bg-gray-200"></div>
+                    <div>
+                        <p class="text-xs text-gray-400 font-medium mb-1">목표 달성률</p>
+                        <p class="text-lg font-bold text-primary" id="display-percent">0%</p>
+                    </div>
+                </div>
+            </div>
             
-            // 추가된 부분: 관리자 화면이 열릴 때 실시간 통계 가져오기
-            if (viewId === 'view-admin') {
-                fetchAdminStats();
-            }
+            <div class="px-4 mb-4">
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl shadow-sm flex gap-3">
+                    <div class="text-blue-500 text-2xl mt-1"><i class="fa-solid fa-comment-dots"></i></div>
+                    <div>
+                        <h3 class="font-bold text-blue-800 text-sm mb-2">찰칵 피드백</h3>
+                        <p id="ai-feedback-text" class="text-sm text-blue-700 leading-relaxed">아직 기록된 식단이 없습니다. 맛있는 음식 사진을 올려주시면 피드백을 드릴게요!</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-4 mb-4">
+                <button onclick="openUploadModal()" class="w-full bg-primary hover:bg-primary_dark text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex justify-center items-center gap-2 active:scale-95 text-lg">
+                    <i class="fa-solid fa-camera"></i> 사진으로 식단 추가하기
+                </button>
+            </div>
+            
+            <div class="px-4 pb-6">
+                <div class="flex justify-between items-end mb-3 ml-1">
+                    <h3 class="font-bold text-gray-700" id="food-list-title">오늘 먹은 음식</h3>
+                </div>
+                <div id="food-list" class="space-y-3">
+                    <div id="empty-state" class="text-center py-10 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300 text-2xl">
+                            <i class="fa-solid fa-utensils"></i>
+                        </div>
+                        <p class="text-gray-400 text-sm">아직 기록된 식단이 없습니다.<br>사진을 찍어 기록해보세요!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="upload-modal" class="hidden absolute inset-0 z-50 flex items-end justify-center">
+            <div class="absolute inset-0 bg-black/50 transition-opacity" onclick="closeUploadModal()"></div>
+            <div class="bg-white w-full h-auto rounded-t-3xl p-6 transform transition-transform translate-y-full z-10 duration-300" id="upload-sheet">
+                <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 text-center">식단 기록하기</h3>
+                <div class="space-y-3">
+                    <label class="block w-full py-4 px-4 bg-gray-50 hover:bg-gray-100 rounded-2xl cursor-pointer flex items-center gap-4 text-gray-700 font-medium">
+                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-primary"><i class="fa-solid fa-camera"></i></div>
+                        카메라로 직접 촬영
+                        <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleImageUpload(event)">
+                    </label>
+                    <label class="block w-full py-4 px-4 bg-gray-50 hover:bg-gray-100 rounded-2xl cursor-pointer flex items-center gap-4 text-gray-700 font-medium">
+                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-blue-500"><i class="fa-solid fa-image"></i></div>
+                        갤러리에서 사진 선택
+                        <input type="file" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                    </label>
+                </div>
+                <button onclick="closeUploadModal()" class="w-full mt-4 py-4 font-bold text-gray-400">취소</button>
+            </div>
+        </div>
+
+        <div id="view-analysis" class="hidden flex-1 overflow-y-auto bg-gray-900 text-white flex flex-col relative">
+            <button onclick="cancelAnalysis()" class="absolute top-6 right-6 text-white/70 hover:text-white z-20 bg-black/30 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="w-full h-[50%] relative bg-black">
+                <img id="preview-image" src="" class="w-full h-full object-cover opacity-60">
+                <div id="scanning-overlay" class="absolute inset-0 flex flex-col items-center justify-center z-10">
+                    <div class="w-full h-1 bg-primary absolute top-0 left-0 shadow-[0_0_15px_#10B981] animate-[scan_2s_ease-in-out_infinite]"></div>
+                    <i class="fa-solid fa-magnifying-glass text-4xl text-primary mb-4 animate-bounce"></i>
+                    <!-- 🚨 문구 수정 적용된 부분 -->
+                    <p class="font-bold text-lg animate-pulse">AI 분석 중...</p>
+                    <p class="text-xs text-white/60 mt-2 text-center px-10">사진 속 음식을 감별하고 있습니다.</p>
+                </div>
+            </div>
+            <div id="result-container" class="hidden flex-1 bg-white text-gray-800 rounded-t-3xl -mt-6 z-10 p-6 flex flex-col relative">
+                <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
+                <div class="flex justify-between items-end mb-1"><p class="text-sm font-bold text-primary"><i class="fa-solid fa-check-circle"></i> AI 분석 완료</p></div>
+                <div class="flex items-center gap-2 mb-1">
+                    <h2 class="text-2xl font-black" id="result-name">요리명</h2>
+                    <button onclick="editFoodInfo()" class="text-gray-500 hover:text-primary text-sm bg-gray-100 px-3 py-1.5 flex justify-center items-center rounded-full gap-1"><i class="fa-solid fa-pen"></i> <span class="font-bold">수정</span></button>
+                </div>
+                <p class="text-gray-500 text-sm mb-6" id="result-desc">추정량: 약 1인분</p>
+                <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100 mb-6 flex justify-between items-center">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 mb-1">추정 칼로리</p>
+                        <p class="text-3xl font-black text-gray-800"><span id="result-kcal" class="text-primary">0</span> <span class="text-lg">kcal</span></p>
+                    </div>
+                    <div class="text-right flex flex-col gap-1">
+                        <span id="result-carbs" class="text-xs font-medium bg-orange-100 text-orange-600 px-2 py-1 rounded">탄 0g</span>
+                        <span id="result-protein" class="text-xs font-medium bg-blue-100 text-blue-600 px-2 py-1 rounded">단 0g</span>
+                        <span id="result-fat" class="text-xs font-medium bg-red-100 text-red-600 px-2 py-1 rounded">지 0g</span>
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">실제 먹은 양 조절</label>
+                    <input type="range" id="portion-slider" min="10" max="200" value="100" class="w-full accent-primary h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updatePortion()">
+                    <div class="flex justify-between text-xs text-gray-400 mt-2 font-medium">
+                        <span>조금 먹음</span><span id="portion-label" class="text-primary font-bold">100% (다 먹음)</span><span>많이 먹음</span>
+                    </div>
+                </div>
+                <div class="mt-auto pt-4 flex gap-3">
+                    <button onclick="cancelAnalysis()" class="flex-1 py-4 bg-gray-100 text-gray-700 font-bold rounded-xl">다시 찍기</button>
+                    <button onclick="confirmFood()" class="flex-[2] py-4 bg-primary text-white font-bold rounded-xl active:scale-95">기록하기</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="share-modal" class="hidden absolute inset-0 bg-black/60 z-50 flex justify-center items-end sm:items-center">
+            <div class="bg-white w-full sm:w-[90%] rounded-t-3xl sm:rounded-3xl p-6 flex flex-col animate-[translate-y_0.3s_ease-out]">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold">공유하기</h3>
+                    <button onclick="closeShareModal()" class="text-gray-400 hover:text-gray-600 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <a href="http://pf.kakao.com/_kSxbnK" target="_blank" class="flex flex-col items-center gap-2">
+                        <div class="w-14 h-14 bg-[#FEE500] rounded-full flex items-center justify-center text-2xl text-[#391B1B] shadow-sm"><i class="fa-solid fa-comment"></i></div>
+                        <span class="text-xs font-medium text-gray-700">카카오 채널</span>
+                    </a>
+                    <button onclick="shareViaWebAPI()" class="flex flex-col items-center gap-2">
+                        <div class="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center text-2xl text-white shadow-sm"><i class="fa-solid fa-share-nodes"></i></div>
+                        <span class="text-xs font-medium text-gray-700">친구 공유</span>
+                    </button>
+                    <button onclick="copyUrl()" class="flex flex-col items-center gap-2">
+                        <div class="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-2xl text-gray-600 shadow-sm"><i class="fa-solid fa-link"></i></div>
+                        <span class="text-xs font-medium text-gray-700">URL 복사</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="password-modal" class="hidden absolute inset-0 bg-black/60 z-50 flex justify-center items-center">
+            <div class="bg-white w-[80%] max-w-sm rounded-3xl p-6 flex flex-col">
+                <h3 class="text-lg font-bold mb-2">관리자 인증</h3>
+                <p class="text-sm text-gray-500 mb-4">비밀번호를 입력해주세요.</p>
+                <input type="password" id="admin-password-input" placeholder="****" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-primary mb-2 text-center text-lg tracking-widest">
+                <div class="flex gap-2 mt-2">
+                    <button onclick="closePasswordModal()" class="flex-1 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600 font-medium">취소</button>
+                    <button onclick="verifyPassword()" class="flex-1 bg-primary text-white font-bold py-3 rounded-xl">확인</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 기본 앱 상태 및 UI 로직 (이전과 동일)
+        let appState = { profile: { gender: null, age: null, height: null, weight: null, activity: 1.55, goalKcal: 2000 }, currentDate: getTodayString(), history: {}, tempAnalysis: null };
+        function getTodayString() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+        function formatDateDisplay(dateStr) { const today = getTodayString(); if (dateStr === today) return "오늘"; const d = new Date(dateStr); return `${d.getMonth() + 1}월 ${d.getDate()}일`; }
+        function changeDate(offset) { const d = new Date(appState.currentDate); d.setDate(d.getDate() + offset); appState.currentDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; if(!appState.history[appState.currentDate]) appState.history[appState.currentDate] = { consumed: 0, foodLog: [] }; updateDashboardUI(); }
+        function initApp() { const saved = localStorage.getItem('aiDietData'); if (saved) { const parsed = JSON.parse(saved); appState.profile = parsed.profile || appState.profile; appState.history = parsed.history || {}; appState.currentDate = getTodayString(); if(!appState.history[appState.currentDate]) appState.history[appState.currentDate] = { consumed: 0, foodLog: [] }; if (appState.profile.gender && appState.profile.age) { showView('view-dashboard'); updateDashboardUI(); return; } } else { appState.history[appState.currentDate] = { consumed: 0, foodLog: [] }; } }
+        function saveData() { try { localStorage.setItem('aiDietData', JSON.stringify({ profile: appState.profile, history: appState.history })); } catch (e) {} }
+        window.onload = initApp;
+        
+        function showView(viewId) { 
+            document.getElementById('view-onboarding').classList.add('hidden'); 
+            document.getElementById('view-dashboard').classList.add('hidden'); 
+            document.getElementById('view-analysis').classList.add('hidden'); 
+            document.getElementById('view-admin').classList.add('hidden'); // 추가
+            const target = document.getElementById(viewId); 
+            target.classList.remove('hidden'); 
+            target.classList.add('fade-enter', 'fade-enter-active'); 
+            setTimeout(() => target.classList.remove('fade-enter', 'fade-enter-active'), 300); 
+        }
+        
+        function resetApp() { if(confirm("모든 설정과 기록이 삭제됩니다. 계속하시겠습니까?")) { localStorage.removeItem('aiDietData'); location.reload(); } }
+        function setGender(gender) { appState.profile.gender = gender; document.getElementById('btn-gender-m').classList.remove('border-primary', 'bg-primary/10', 'text-primary'); document.getElementById('btn-gender-f').classList.remove('border-primary', 'bg-primary/10', 'text-primary'); if(gender === 'M') document.getElementById('btn-gender-m').classList.add('border-primary', 'bg-primary/10', 'text-primary'); if(gender === 'F') document.getElementById('btn-gender-f').classList.add('border-primary', 'bg-primary/10', 'text-primary'); }
+        function calculateProfile() { const age = parseInt(document.getElementById('input-age').value); const height = parseInt(document.getElementById('input-height').value); const weight = parseInt(document.getElementById('input-weight').value); const activity = parseFloat(document.getElementById('input-activity').value); if(!appState.profile.gender || !age || !height || !weight) { showToast("모든 정보를 입력해주세요."); return; } appState.profile.age = age; appState.profile.height = height; appState.profile.weight = weight; appState.profile.activity = activity; let bmr = appState.profile.gender === 'M' ? (10 * weight) + (6.25 * height) - (5 * age) + 5 : (10 * weight) + (6.25 * height) - (5 * age) - 161; appState.profile.goalKcal = Math.round(bmr * activity); saveData(); updateDashboardUI(); showView('view-dashboard'); }
+        
+        function updateDashboardUI() { const todayData = appState.history[appState.currentDate]; const consumed = todayData ? todayData.consumed : 0; const goalKcal = appState.profile.goalKcal || 2000; document.getElementById('display-goal').innerText = goalKcal.toLocaleString(); document.getElementById('display-date').innerText = formatDateDisplay(appState.currentDate); document.getElementById('food-list-title').innerText = appState.currentDate === getTodayString() ? "오늘 먹은 음식" : `${formatDateDisplay(appState.currentDate)} 식단`; animateValue("display-consumed", parseInt(document.getElementById('display-consumed').innerText.replace(/,/g, '')) || 0, consumed, 500); let diff = goalKcal - consumed; const isOverflown = diff < 0; let percent = Math.round((consumed / goalKcal) * 100); const remainingLabelEl = document.getElementById('remaining-label'); const remainingEl = document.getElementById('display-remaining'); const consumedEl = document.getElementById('display-consumed'); const percentEl = document.getElementById('display-percent'); const summaryCardEl = document.getElementById('summary-card'); const overflowBadgeEl = document.getElementById('overflow-badge'); const circle = document.getElementById('progress-circle'); if (isOverflown) { remainingLabelEl.innerText = "초과 칼로리"; remainingLabelEl.classList.add('text-red-500'); remainingEl.innerText = `+${Math.abs(diff).toLocaleString()}`; remainingEl.className = "text-lg font-extrabold text-red-600 animate-bounce"; consumedEl.classList.add('text-red-600'); percentEl.className = "text-lg font-black text-red-600"; percentEl.innerText = `${percent}% (초과)`; overflowBadgeEl.classList.remove('hidden'); summaryCardEl.classList.add('overflow-alert-card'); circle.classList.remove('text-primary'); circle.classList.add('text-red-500'); circle.style.strokeDashoffset = 0; } else { remainingLabelEl.innerText = "남은 칼로리"; remainingLabelEl.classList.remove('text-red-500'); remainingEl.innerText = diff.toLocaleString(); remainingEl.className = "text-lg font-bold text-blue-500"; consumedEl.classList.remove('text-red-600'); percentEl.className = "text-lg font-bold text-primary"; percentEl.innerText = `${percent}%`; overflowBadgeEl.classList.add('hidden'); summaryCardEl.classList.remove('overflow-alert-card'); circle.classList.remove('text-red-500'); circle.classList.add('text-primary'); const circumference = circle.r.baseVal.value * 2 * Math.PI; circle.style.strokeDasharray = `${circumference} ${circumference}`; circle.style.strokeDashoffset = circumference - (Math.min(percent, 100) / 100) * circumference; } renderFoodList(todayData ? todayData.foodLog : []); updateAIFeedback(todayData ? todayData.foodLog : [], isOverflown, Math.abs(diff)); }
+        function renderFoodList(foodLog) { const list = document.getElementById('food-list'); const emptyState = document.getElementById('empty-state'); Array.from(list.children).forEach(child => { if(child.id !== 'empty-state') child.remove(); }); if (!foodLog || foodLog.length === 0) { emptyState.style.display = 'block'; } else { emptyState.style.display = 'none'; foodLog.forEach((food) => { const item = document.createElement('div'); item.className = "bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center fade-enter fade-enter-active"; item.innerHTML = `<div class="flex items-center gap-4"><div class="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden relative"><img src="${food.image}" class="w-full h-full object-cover"></div><div><p class="font-bold text-gray-800">${food.name}</p><p class="text-xs text-gray-400">${food.time} • ${food.portion}% 섭취</p></div></div><div class="text-right"><p class="font-black text-gray-800">${food.kcal} <span class="text-xs font-normal text-gray-500">kcal</span></p></div>`; list.appendChild(item); }); } }
+        function openUploadModal() { document.getElementById('upload-modal').classList.remove('hidden'); setTimeout(() => { document.getElementById('upload-sheet').classList.remove('translate-y-full'); }, 10); }
+        function closeUploadModal() { document.getElementById('upload-sheet').classList.add('translate-y-full'); setTimeout(() => { document.getElementById('upload-modal').classList.add('hidden'); }, 300); }
+
+        function handleImageUpload(event) {
+            closeUploadModal(); const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas'); const MAX_WIDTH = 600; let width = img.width; let height = img.height;
+                    if (width > MAX_WIDTH) { height = Math.round((height *= MAX_WIDTH / width)); width = MAX_WIDTH; }
+                    canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    document.getElementById('preview-image').src = compressedDataUrl; document.getElementById('scanning-overlay').classList.remove('hidden'); document.getElementById('result-container').classList.add('hidden'); document.getElementById('portion-slider').value = 100; updatePortion(); showView('view-analysis');
+                    analyzeImageWithAI(compressedDataUrl);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
 
-        // 추가된 부분: 글로벌 DB 통계 호출 함수
-        async function fetchAdminStats() {
+        // 🚨 이 부분이 자료에서 지적하신 "해결 방법 A"에 맞춰 /api/diet 라우트를 호출하는 부분입니다.
+        async function analyzeImageWithAI(imageDataUrl) {
             try {
-                document.getElementById('admin-today-count').innerHTML = `... <span class="text-lg font-bold text-gray-400">조회중</span>`;
-                document.getElementById('admin-month-count').innerHTML = `... <span class="text-lg font-bold text-gray-400">조회중</span>`;
-                document.getElementById('admin-total-count').innerHTML = `... <span class="text-lg font-bold text-primary/50">조회중</span>`;
-                
-                const response = await fetch('/api/diet'); // GET 방식으로 호출
-                if (!response.ok) throw new Error("서버 응답 오류");
-                const data = await response.json();
-                
-                document.getElementById('admin-today-count').innerHTML = `${data.day || 0} <span class="text-lg font-bold text-gray-400">회</span>`;
-                document.getElementById('admin-month-count').innerHTML = `${data.month || 0} <span class="text-lg font-bold text-gray-400">회</span>`;
-                document.getElementById('admin-total-count').innerHTML = `${data.total || 0} <span class="text-lg font-bold text-primary/50">회</span>`;
+                // Vercel 서버리스 함수 호출
+                const response = await fetch('/api/diet', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageDataUrl })
+                });
+
+                if (!response.ok) {
+                    const errorJson = await response.json().catch(() => ({}));
+                    throw new Error(`분석 서버 응답 실패: ${response.status} - ${errorJson.error || ''}`);
+                }
+
+                const result = await response.json();
+                if (result.success && result.data) {
+                    displayAnalysisResult(result.data, imageDataUrl);
+                } else {
+                    throw new Error("서버에서 올바른 데이터를 받지 못했습니다.");
+                }
             } catch (err) {
-                console.error("통계 조회 실패", err);
-                document.getElementById('admin-total-count').innerHTML = `에러`;
+                console.error("AI 분석 에러:", err);
+                showToast("오류 발생: " + err.message);
+                displayAnalysisResult({ name: "직접 입력 필요 (서버 에러)", desc: err.message, baseKcal: 500, carbs: 0, protein: 0, fat: 0 }, imageDataUrl);
             }
         }
 
-        // 성별 버튼 클릭 로직
-        function setGender(gender) {
-<!-- ... existing code ... -->
+        function displayAnalysisResult(foodData, imageSrc) { document.getElementById('scanning-overlay').classList.add('hidden'); const resultDiv = document.getElementById('result-container'); resultDiv.classList.remove('hidden'); resultDiv.classList.add('fade-enter', 'fade-enter-active'); appState.tempAnalysis = { name: foodData.name || "식별 불가", baseKcal: foodData.baseKcal || 0, currentKcal: foodData.baseKcal || 0, carbs: foodData.carbs || 0, protein: foodData.protein || 0, fat: foodData.fat || 0, image: imageSrc, portion: 100 }; document.getElementById('result-name').innerText = foodData.name || "알 수 없음"; document.getElementById('result-desc').innerText = foodData.desc || ""; document.getElementById('result-kcal').innerText = foodData.baseKcal || 0; document.getElementById('result-carbs').innerText = `탄 ${foodData.carbs || 0}g`; document.getElementById('result-protein').innerText = `단 ${foodData.protein || 0}g`; document.getElementById('result-fat').innerText = `지 ${foodData.fat || 0}g`; }
+        function cancelAnalysis() { appState.tempAnalysis = null; document.querySelectorAll('input[type="file"]').forEach(input => input.value = ''); showView('view-dashboard'); }
+        function editFoodInfo() { if(!appState.tempAnalysis) return; const newName = prompt("음식 이름을 입력해주세요.", appState.tempAnalysis.name); if(newName && newName.trim() !== "") { appState.tempAnalysis.name = newName; document.getElementById('result-name').innerText = newName; } }
+        function updatePortion() { const val = document.getElementById('portion-slider').value; let label = `${val}%`; if(val == 100) label = "100% (다 먹음)"; else if (val < 50) label = `${val}% (조금만 먹음)`; else if (val > 150) label = `${val}% (많이 먹음)`; document.getElementById('portion-label').innerText = label; if(appState.tempAnalysis) { appState.tempAnalysis.portion = val; appState.tempAnalysis.currentKcal = Math.round(appState.tempAnalysis.baseKcal * (val / 100)); document.getElementById('result-kcal').innerText = appState.tempAnalysis.currentKcal; } }
+        function confirmFood() { if(!appState.tempAnalysis) return; const now = new Date(); const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`; if(!appState.history[appState.currentDate]) appState.history[appState.currentDate] = { consumed: 0, foodLog: [] }; appState.history[appState.currentDate].foodLog.unshift({ name: appState.tempAnalysis.name, kcal: appState.tempAnalysis.currentKcal, portion: appState.tempAnalysis.portion, image: appState.tempAnalysis.image, time: timeString }); appState.history[appState.currentDate].consumed += appState.tempAnalysis.currentKcal; appState.tempAnalysis = null; document.querySelectorAll('input[type="file"]').forEach(input => input.value = ''); saveData(); updateDashboardUI(); showView('view-dashboard'); showToast("기록되었습니다!"); }
+        
+        function updateAIFeedback(foodLog, isOverflown = false, excessKcal = 0) {
+            const feedbackEl = document.getElementById('ai-feedback-text');
+            if (!foodLog || foodLog.length === 0) {
+                feedbackEl.innerHTML = "아직 기록된 식단이 없습니다. 맛있는 음식 사진을 올려주시면 피드백을 드릴게요!";
+                return;
+            }
+            if (isOverflown) {
+                feedbackEl.innerHTML = `앗! 하루 권장량을 <strong>${excessKcal.toLocaleString()} kcal</strong> 초과했어요.<br><span class="text-xs text-blue-600 mt-1 inline-block">오늘은 가벼운 산책으로 소화를 도와보는 건 어떨까요? 🏃‍♂️</span>`;
+                return;
+            }
+            
+            const lastFood = foodLog[0];
+            const hour = parseInt(lastFood.time.split(':')[0]);
+            
+            if (hour >= 5 && hour < 11) {
+                feedbackEl.innerHTML = `☀️ 활기찬 아침!<br><strong>${lastFood.time}</strong>에 드신 <strong>${lastFood.name}</strong>(이)가 오늘 하루의 든든한 에너지가 될 거예요.`;
+            } else if (hour >= 11 && hour < 17) {
+                feedbackEl.innerHTML = `☁️ 나른한 오후, <strong>${lastFood.name}</strong>(으)로 맛있는 충전 완료!<br><span class="text-xs text-blue-600 mt-1 inline-block">남은 칼로리를 잘 조절하며 남은 하루도 파이팅하세요.</span>`;
+            } else if (hour >= 17 && hour < 22) {
+                feedbackEl.innerHTML = `🌙 하루를 마무리하며 <strong>${lastFood.name}</strong>을(를) 드셨군요.<br><span class="text-xs text-blue-600 mt-1 inline-block">목표 칼로리 한도 내에서 아주 잘하고 계십니다!</span>`;
+            } else {
+                feedbackEl.innerHTML = `🦉 늦은 밤 <strong>${lastFood.time}</strong>에 <strong>${lastFood.name}</strong>을(를) 드셨네요.<br><span class="text-xs text-blue-600 mt-1 inline-block">소화가 잘 되도록 가볍게 움직인 후 주무시는 걸 추천해요!</span>`;
+            }
+        }
+
+        function animateValue(id, start, end, duration) { if (start === end) return; const obj = document.getElementById(id); let startTimestamp = null; const step = (timestamp) => { if (!startTimestamp) startTimestamp = timestamp; const progress = Math.min((timestamp - startTimestamp) / duration, 1); obj.innerHTML = Math.floor(progress * (end - start) + start).toLocaleString(); if (progress < 1) window.requestAnimationFrame(step); }; window.requestAnimationFrame(step); }
+        function showToast(message) { const toast = document.createElement('div'); toast.className = "fixed top-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg z-50 fade-enter fade-enter-active"; toast.innerText = message; document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translate(-50%, -10px)'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 2500); }
+        
+        // --- 관리자 모드 로직 ---
+        let adminClickCount = 0;
+        let adminClickTimer = null;
+        
+        function handleAdminClick() {
+            adminClickCount++;
+            clearTimeout(adminClickTimer);
+            adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 2000);
+            if(adminClickCount >= 5) {
+                document.getElementById('admin-password-input').value = '';
+                document.getElementById('password-modal').classList.remove('hidden');
+                adminClickCount = 0; 
+            }
+        }
+        
+        function closePasswordModal() { 
+            document.getElementById('password-modal').classList.add('hidden'); 
+        }
+        
+        function verifyPassword() {
+            if(document.getElementById('admin-password-input').value === '0319') {
+                closePasswordModal();
+                showView('view-admin');
+            } else {
+                showToast('비밀번호가 틀렸습니다.');
+            }
+        }
+
+        // --- 공유 로직 ---
+        function shareApp() { 
+            document.getElementById('share-modal').classList.remove('hidden'); 
+        }
+        
+        function closeShareModal() { 
+            document.getElementById('share-modal').classList.add('hidden'); 
+        }
+        
+        function shareViaWebAPI() {
+            if (navigator.share) {
+                navigator.share({ title: '찰칵 식단', url: window.location.href });
+            } else { 
+                showToast("공유를 지원하지 않는 브라우저입니다."); 
+            }
+        }
+        
+        function copyUrl() {
+            const url = window.location.href;
+            const tempInput = document.createElement("input");
+            tempInput.value = url;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            showToast("URL이 복사되었습니다!");
+            closeShareModal();
+        }
+    </script>
+</body>
+</html>
