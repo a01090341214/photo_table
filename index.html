@@ -61,6 +61,18 @@
                     <p class="text-sm font-medium text-gray-500 mb-1">금일 이미지 업로드 횟수</p>
                     <p class="text-4xl font-black text-gray-800" id="admin-today-count">0 <span class="text-lg font-bold text-gray-400">회</span></p>
                 </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <p class="text-sm font-medium text-gray-500 mb-1">이번 달 총 업로드 횟수</p>
+                    <p class="text-4xl font-black text-gray-800" id="admin-month-count">0 <span class="text-lg font-bold text-gray-400">회</span></p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <p class="text-sm font-medium text-gray-500 mb-1">전체 누적 업로드 횟수</p>
+                    <p class="text-4xl font-black text-gray-800" id="admin-total-count">0 <span class="text-lg font-bold text-gray-400">회</span></p>
+                </div>
+            </div>
+            <div class="mt-auto pt-6 text-center text-xs text-gray-400 leading-relaxed">
+                <p><i class="fa-solid fa-circle-info mb-1"></i></p>
+                <p id="admin-db-status">Vercel 데이터베이스 통계를 대기 중입니다.</p>
             </div>
         </div>
 
@@ -205,7 +217,6 @@
                 <div id="scanning-overlay" class="absolute inset-0 flex flex-col items-center justify-center z-10">
                     <div class="w-full h-1 bg-primary absolute top-0 left-0 shadow-[0_0_15px_#10B981] animate-[scan_2s_ease-in-out_infinite]"></div>
                     <i class="fa-solid fa-magnifying-glass text-4xl text-primary mb-4 animate-bounce"></i>
-                    <!-- 🚨 문구 수정 적용된 부분 -->
                     <p class="font-bold text-lg animate-pulse">AI 분석 중...</p>
                     <p class="text-xs text-white/60 mt-2 text-center px-10">사진 속 음식을 감별하고 있습니다.</p>
                 </div>
@@ -294,7 +305,7 @@
             document.getElementById('view-onboarding').classList.add('hidden'); 
             document.getElementById('view-dashboard').classList.add('hidden'); 
             document.getElementById('view-analysis').classList.add('hidden'); 
-            document.getElementById('view-admin').classList.add('hidden'); // 추가
+            document.getElementById('view-admin').classList.add('hidden'); 
             const target = document.getElementById(viewId); 
             target.classList.remove('hidden'); 
             target.classList.add('fade-enter', 'fade-enter-active'); 
@@ -328,7 +339,6 @@
             reader.readAsDataURL(file);
         }
 
-        // 🚨 이 부분이 자료에서 지적하신 "해결 방법 A"에 맞춰 /api/diet 라우트를 호출하는 부분입니다.
         async function analyzeImageWithAI(imageDataUrl) {
             try {
                 // Vercel 서버리스 함수 호출
@@ -413,8 +423,29 @@
             if(document.getElementById('admin-password-input').value === '0319') {
                 closePasswordModal();
                 showView('view-admin');
+                fetchAdminStats(); // [추가] 관리자 페이지 열릴 때 통계 불러오기
             } else {
                 showToast('비밀번호가 틀렸습니다.');
+            }
+        }
+
+        // [추가] 글로벌 통계 데이터 가져오기
+        async function fetchAdminStats() {
+            const statusEl = document.getElementById('admin-db-status');
+            statusEl.innerText = "통계 데이터를 불러오는 중입니다...";
+            try {
+                const response = await fetch('/api/diet');
+                if(response.ok) {
+                    const data = await response.json();
+                    animateValue('admin-today-count', 0, data.day || 0, 1000);
+                    animateValue('admin-month-count', 0, data.month || 0, 1000);
+                    animateValue('admin-total-count', 0, data.total || 0, 1000);
+                    statusEl.innerText = "글로벌 통계 연동 완료 (Vercel KV)";
+                } else {
+                    statusEl.innerText = "DB 연동 대기 중: Vercel KV를 연결해주세요.";
+                }
+            } catch(e) {
+                statusEl.innerText = "DB 연동 오류: 백엔드 상태를 확인하세요.";
             }
         }
 
@@ -449,3 +480,4 @@
     </script>
 </body>
 </html>
+```
